@@ -1,141 +1,148 @@
 'use client';
 
-import React, { useRef } from 'react';
-import { ViolationResponse } from '@/lib/types';
+import React, { useId, useMemo, useState } from 'react';
+import { AlertCircle, Clock, MessageSquareText, X } from 'lucide-react';
+import { ObservationResponse, ViolationResponse } from '@/lib/types';
 import { formatTimestamp } from '@/lib/api';
-import { AlertCircle, Clock } from 'lucide-react';
+import { confidenceExplanation, formatConfidence } from '@/lib/confidence';
+import { buildTimelineEvents, eventsAtTime, groupTimelineEvents } from '@/lib/timeline';
 
 interface TimelineProps {
-  duration: number; // in seconds
-  currentTime: number; // in seconds
+  duration: number;
+  currentTime: number;
   violations: ViolationResponse[];
+  observations: ObservationResponse[];
+  observationsStatus: 'available' | 'unavailable';
   onSeek: (seconds: number) => void;
   activeViolationId?: number | null;
 }
 
-export function Timeline({
-  duration,
-  currentTime,
-  violations,
-  onSeek,
-  activeViolationId,
-}: TimelineProps) {
-  const barRef = useRef<HTMLDivElement>(null);
-  const totalDuration = duration > 0 ? duration : 60; // fallback duration if not loaded
+export function Timeline({ duration, currentTime, violations, observations, observationsStatus, onSeek, activeViolationId }: TimelineProps) {
+  const panelId = useId();
+  const [preview, setPreview] = useState<{ groupId: string } | { time: number } | null>(null);
+  const events = useMemo(() => buildTimelineEvents(observations, violations), [observations, violations]);
+  const totalDuration = duration > 0 ? duration : Math.max(1, ...events.map(event => event.end));
+  const groups = useMemo(() => groupTimelineEvents(events, totalDuration), [events, totalDuration]);
+  const previewEvents = preview && 'groupId' in preview
+    ? groups.find(group => group[0].id === preview.groupId) ?? []
+    : preview ? eventsAtTime(events, preview.time) : [];
+  const percent = (time: number) => Math.min(100, Math.max(0, time / totalDuration * 100));
 
-  const handleBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!barRef.current) return;
-    const rect = barRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const fraction = Math.max(0, Math.min(1, clickX / rect.width));
-    onSeek(fraction * totalDuration);
+  const inspectPosition = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== 'mouse') return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (rect.width > 0) setPreview({ time: Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) * totalDuration });
   };
 
-  const progressPercent = Math.min(100, Math.max(0, (currentTime / totalDuration) * 100));
-
   return (
-    <div className="w-full rounded-xl border border-white/[0.08] bg-black/40 p-4 space-y-3 backdrop-blur-md">
-      <div className="flex items-center justify-between text-xs text-zinc-400">
+    <div
+      className="w-full rounded-xl border border-white/[0.08] bg-black/40 p-4 space-y-4 backdrop-blur-md"
+      onKeyDown={event => { if (event.key === 'Escape') setPreview(null); }}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-400">
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-[#f43f5e]" />
           <span className="font-semibold text-white">Таймлайн записи</span>
-          <span className="text-[11px] text-zinc-400">({violations.length} событий на шкале)</span>
+          <span>{events.length} наблюдений и событий</span>
         </div>
-        <div className="font-mono text-xs text-zinc-300">
-          <span className="text-white font-bold">{formatTimestamp(currentTime)}</span> / {formatTimestamp(totalDuration)}
-        </div>
+        <span className="font-mono text-zinc-300">{formatTimestamp(currentTime)} / {formatTimestamp(totalDuration)}</span>
       </div>
 
-      {/* Main Track Bar */}
-      <div
-        ref={barRef}
-        onClick={handleBarClick}
-        className="relative h-6 w-full cursor-pointer select-none rounded-lg bg-zinc-800/80 hover:bg-zinc-800 transition-colors"
-      >
-        {/* Playback progress bar */}
-        <div
-          className="absolute inset-y-0 left-0 rounded-l-lg bg-white/15 pointer-events-none transition-all duration-100"
-          style={{ width: `${progressPercent}%` }}
-        />
-
-        {/* Current Playhead cursor */}
-        <div
-          className="absolute top-0 bottom-0 w-1 bg-white shadow-lg pointer-events-none z-30 transition-all duration-100"
-          style={{ left: `${progressPercent}%` }}
-        >
-          <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 h-3.5 w-3.5 rounded-full bg-white ring-2 ring-[#c21350] shadow" />
-        </div>
-
-        {/* Violation Event Markers on the timeline */}
-        {violations.map((violation, idx) => {
-          const markerPercent = Math.min(100, Math.max(0, (violation.timestamp_sec / totalDuration) * 100));
-          const isActive = activeViolationId === violation.id ||
-            (currentTime >= violation.timestamp_sec && (!violation.end_timestamp_sec || currentTime <= violation.end_timestamp_sec));
-
-          // Calculate duration width if end_timestamp_sec is present
-          let rangeWidth = 0;
-          if (violation.end_timestamp_sec && violation.end_timestamp_sec > violation.timestamp_sec) {
-            rangeWidth = ((violation.end_timestamp_sec - violation.timestamp_sec) / totalDuration) * 100;
-          }
-
+      <div className="relative h-16" onPointerMove={inspectPosition}>
+        {groups.map(group => {
+          const first = group[0];
+          const matched = group.some(event => event.rules.length > 0);
+          const selected = previewEvents.some(event => group.includes(event)) ||
+            (activeViolationId != null && group.some(event => event.violationId === activeViolationId));
           return (
-            <React.Fragment key={violation.id || idx}>
-              {/* Highlight range zone on the bar */}
-              {rangeWidth > 0 && (
-                <div
-                  className={`absolute inset-y-0 pointer-events-none rounded transition-opacity ${
-                    isActive ? 'bg-[#a11042]/50' : 'bg-[#a11042]/25'
-                  }`}
-                  style={{
-                    left: `${markerPercent}%`,
-                    width: `${Math.min(100 - markerPercent, rangeWidth)}%`,
-                  }}
-                />
-              )}
-
-              {/* Pin marker button with tooltip */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSeek(violation.timestamp_sec);
-                }}
-                className={`group absolute -top-1.5 z-20 -translate-x-1/2 flex flex-col items-center transition-transform hover:scale-125 focus:outline-none`}
-                style={{ left: `${markerPercent}%` }}
-                title={`${violation.title} (${formatTimestamp(violation.timestamp_sec)})`}
-              >
-                <div
-                  className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-all shadow-lg ${
-                    isActive
-                      ? 'border-white bg-[#c21350] text-white scale-110 ring-4 ring-[#a11042]/40'
-                      : 'border-[#f43f5e] bg-[#a11042] text-white'
-                  }`}
-                >
-                  <AlertCircle className="h-4 w-4" />
-                </div>
-
-                {/* Tooltip on hover */}
-                <div className="pointer-events-none absolute bottom-11 hidden w-48 -translate-x-1/2 flex-col rounded-lg border border-white/10 bg-zinc-950 p-2 text-left text-xs text-white shadow-2xl group-hover:flex z-50">
-                  <div className="flex items-center justify-between text-[10px] text-[#f43f5e] font-mono font-semibold">
-                    <span>{formatTimestamp(violation.timestamp_sec)}</span>
-                    <span>{Math.round(violation.confidence * 100)}% conf</span>
-                  </div>
-                  <span className="font-semibold line-clamp-1 text-zinc-100">{violation.title}</span>
-                  <span className="text-[10px] text-zinc-400 mt-0.5">Клик для перехода</span>
-                </div>
-              </button>
-            </React.Fragment>
+            <button
+              key={first.id}
+              type="button"
+              aria-label={`${formatTimestamp(first.start)}: ${group.length} наблюдений. Показать описание модели`}
+              aria-controls={panelId}
+              aria-expanded={preview !== null && 'groupId' in preview && preview.groupId === first.id}
+              onPointerEnter={() => setPreview({ groupId: first.id })}
+              onPointerMove={event => event.stopPropagation()}
+              onFocus={() => setPreview({ groupId: first.id })}
+              onClick={() => { setPreview({ groupId: first.id }); onSeek(first.start); }}
+              className={`absolute top-0 z-20 flex h-8 min-w-8 items-center justify-center gap-1 rounded-full border px-1.5 text-xs font-semibold shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${matched ? 'border-rose-400 bg-rose-950 text-rose-100' : 'border-sky-400 bg-sky-950 text-sky-100'} ${selected ? 'ring-2 ring-white/70' : ''}`}
+              style={{ left: `clamp(0px, calc(${percent(first.start)}% - 16px), calc(100% - 40px))` }}
+            >
+              {matched ? <AlertCircle className="h-3.5 w-3.5" /> : <MessageSquareText className="h-3.5 w-3.5" />}
+              {group.length > 1 && <span>{group.length}</span>}
+            </button>
           );
         })}
+
+        <div className="absolute inset-x-0 bottom-1 h-4 rounded bg-zinc-800">
+          {events.map(event => (
+            <div key={event.id} className={`absolute inset-y-0 rounded ${event.rules.length ? 'bg-rose-500/40' : 'bg-sky-400/25'}`}
+              style={{ left: `${percent(event.start)}%`, width: `${Math.max(0, percent(event.end) - percent(event.start))}%` }} />
+          ))}
+          <div className="absolute inset-y-0 left-0 rounded bg-white/15" style={{ width: `${percent(currentTime)}%` }} />
+          <div className="pointer-events-none absolute -inset-y-1 w-0.5 bg-white" style={{ left: `min(${percent(currentTime)}%, calc(100% - 2px))` }} />
+        </div>
+        <input
+          type="range" min={0} max={totalDuration} step={0.01}
+          value={Math.min(totalDuration, Math.max(0, currentTime))}
+          aria-label="Позиция на таймлайне"
+          aria-valuetext={formatTimestamp(currentTime)}
+          aria-controls={panelId}
+          onFocus={() => setPreview({ time: currentTime })}
+          onChange={event => { const time = Number(event.target.value); setPreview({ time }); onSeek(time); }}
+          className="absolute inset-x-0 bottom-0 z-10 h-6 w-full cursor-pointer opacity-0 focus-visible:opacity-100 accent-rose-500"
+        />
       </div>
 
-      <div className="flex items-center justify-between text-[11px] text-zinc-400 pt-1">
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-[#a11042]" />
-          Маркер нарушения (кликните для перемотки)
-        </span>
-        <span>Клик по шкале перемещает воспроизведение</span>
+      <div className="flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-zinc-400">
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-sky-400" />Наблюдение модели</span>
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-rose-400" />Совпадение с правилом — нужна проверка</span>
       </div>
+
+      {observationsStatus === 'unavailable' && (
+        <p className="text-xs text-amber-300">Подробные наблюдения недоступны. Показаны только сохранённые совпадения с правилами. Обновите страницу, чтобы повторить загрузку.</p>
+      )}
+
+      <section id={panelId} aria-label="Описание модели для фрагмента" className="rounded-lg border border-white/10 bg-zinc-950/80 p-3 sm:p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-zinc-100">Что описала модель</h3>
+            <p className="mt-1 text-xs text-zinc-400">Наведите на шкалу или маркер. Нажатие перемещает запись. Описание остаётся открытым для чтения.</p>
+          </div>
+          {preview && <button type="button" onClick={() => setPreview(null)} aria-label="Закрыть описание фрагмента" className="rounded p-1 text-zinc-400 hover:text-white focus-visible:outline-2 focus-visible:outline-white"><X className="h-4 w-4" /></button>}
+        </div>
+
+        {preview && previewEvents.length === 0 && (
+          <p className="mt-3 text-sm text-zinc-400">В этой точке нет сохранённого наблюдения. Это не означает отсутствие нарушения.</p>
+        )}
+        {!preview && events.length === 0 && observationsStatus === 'available' && (
+          <p className="mt-3 text-sm text-zinc-400">Модель не вернула наблюдений для этой записи.</p>
+        )}
+        {previewEvents.length > 0 && (
+          <div className="mt-4 max-h-80 space-y-4 overflow-y-auto overscroll-contain pr-1">
+            {previewEvents.map(event => (
+              <article key={event.id} className="space-y-2 border-t border-white/10 pt-3 first:border-0 first:pt-0">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <button type="button" onClick={() => onSeek(event.start)} className="rounded font-mono text-xs text-sky-300 underline decoration-sky-300/40 underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-white" aria-label={`Перейти к ${formatTimestamp(event.start)}`}>
+                    {formatTimestamp(event.start)} — {formatTimestamp(event.end)}
+                  </button>
+                  <span className="text-xs text-zinc-300" title={confidenceExplanation}>Самооценка: {formatConfidence(event.confidence)}</span>
+                </div>
+                <h4 className="text-sm font-semibold text-white">{event.title}</h4>
+                <p className="text-[11px] text-zinc-500">{event.originalObservation ? 'Исходное описание модели, без перевода' : 'Сохранённое описание совпадения; исходное наблюдение недоступно'}</p>
+                <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-zinc-200">{event.description}</p>
+                <div className="text-xs text-zinc-400">
+                  <span className="font-medium text-zinc-300">Неопределённости: </span>
+                  {event.uncertainties.length ? <ul className="mt-1 list-disc space-y-1 pl-4">{event.uncertainties.map((text, index) => <li key={index} className="break-words">{text}</li>)}</ul> : 'не указаны моделью'}
+                </div>
+                {event.evidence.length > 0 && <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400">Опорные кадры: {event.evidence.map(time => <button key={time} type="button" onClick={() => onSeek(time)} className="rounded border border-white/15 px-2 py-1 font-mono text-zinc-200 hover:border-sky-400 focus-visible:outline-2 focus-visible:outline-white" aria-label={`Перейти к опорному кадру ${formatTimestamp(time)}`}>{formatTimestamp(time)}</button>)}</div>}
+                {event.rules.length > 0 && <p className="break-words text-xs text-rose-300">Совпадения: {event.rules.join('; ')}. Требуется проверка человеком.</p>}
+              </article>
+            ))}
+          </div>
+        )}
+        {previewEvents.length > 0 && <p className="mt-3 border-t border-white/10 pt-3 text-[11px] text-zinc-500">{confidenceExplanation} Описание может содержать ошибки и не является окончательным решением.</p>}
+      </section>
     </div>
   );
 }

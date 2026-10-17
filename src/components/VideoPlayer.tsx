@@ -4,6 +4,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, AlertTriangle, SkipForward, SkipBack, Maximize2 } from 'lucide-react';
 import { ViolationResponse } from '@/lib/types';
 import { formatTimestamp } from '@/lib/api';
+import { confidenceExplanation, formatConfidence } from '@/lib/confidence';
 
 interface VideoPlayerProps {
   videoUrl?: string | null;
@@ -28,7 +29,6 @@ export function VideoPlayer({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
-  const [activeViolation, setActiveViolation] = useState<ViolationResponse | null>(null);
 
   // Handle external seek requests from timeline or cards
   useEffect(() => {
@@ -38,16 +38,12 @@ export function VideoPlayer({
     }
   }, [seekTime, onSeekComplete]);
 
-  // Sync active violation with current playback time
-  useEffect(() => {
-    const currentViol = violations.find((v) => {
-      const end = v.end_timestamp_sec && v.end_timestamp_sec > v.timestamp_sec
-        ? v.end_timestamp_sec
-        : v.timestamp_sec + 4.0;
-      return currentTime >= v.timestamp_sec && currentTime <= end;
-    });
-    setActiveViolation(currentViol || null);
-  }, [currentTime, violations]);
+  const activeViolation = violations.find((v) => {
+    const end = v.end_timestamp_sec && v.end_timestamp_sec > v.timestamp_sec
+      ? v.end_timestamp_sec
+      : v.timestamp_sec + 4.0;
+    return currentTime >= v.timestamp_sec && currentTime <= end;
+  }) ?? null;
 
   const togglePlay = () => {
     if (!videoRef.current) return;
@@ -160,10 +156,10 @@ export function VideoPlayer({
               </div>
             </div>
 
-            <div className="hidden sm:flex flex-col items-end text-right">
-              <span className="text-[10px] uppercase tracking-wider text-red-300">Уверенность AI</span>
+            <div className="hidden sm:flex flex-col items-end text-right" title={confidenceExplanation}>
+              <span className="text-[10px] uppercase tracking-wider text-red-300">Самооценка модели</span>
               <span className="font-mono text-xs font-bold text-white">
-                {Math.round(activeViolation.confidence * 100)}%
+                {formatConfidence(activeViolation.confidence)}
               </span>
             </div>
           </div>

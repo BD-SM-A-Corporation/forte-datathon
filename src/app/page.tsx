@@ -31,7 +31,7 @@ export default function CashDisciplineApp() {
   // Result state
   const [jobResult, setJobResult] = useState<JobResponse | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(60);
+  const [duration, setDuration] = useState(0);
   const [seekTargetTime, setSeekTargetTime] = useState<number | null>(null);
   const [activeViolationId, setActiveViolationId] = useState<number | null>(null);
 
@@ -114,6 +114,7 @@ export default function CashDisciplineApp() {
     setProgress(0);
     setJobStatus('pending');
     setCurrentTime(0);
+    setDuration(0);
     setCurrentStep('upload');
   };
 
@@ -153,10 +154,10 @@ export default function CashDisciplineApp() {
         </div>}
 
         {currentStep === 'result' && jobResult && <div className="space-y-5 workspace-enter" key="result">
-          <VerdictBanner verdict={jobResult.verdict} violationsCount={jobResult.violations_count} filename={jobResult.filename} onDownloadJson={handleDownloadJson} onReset={handleReset} />
+          <VerdictBanner assessment={jobResult.assessment} violationsCount={jobResult.violations_count} filename={jobResult.filename} onDownloadJson={handleDownloadJson} onReset={handleReset} />
           <div className="result-workspace-grid">
-            <div className="space-y-5 min-w-0"><section className="work-panel video-review-panel" ref={playerSectionRef}><div className="panel-heading"><div className="inspector-heading"><FileVideo size={17} /><h2>Просмотр записи</h2></div><span className="subtle-badge">Исходное видео</span></div><div className="mt-5 space-y-4"><VideoPlayer videoUrl={videoObjectUrl} violations={jobResult.violations} currentTime={currentTime} onTimeUpdate={setCurrentTime} onDurationChange={setDuration} seekTime={seekTargetTime} onSeekComplete={() => setSeekTargetTime(null)} /><Timeline duration={duration} currentTime={currentTime} violations={jobResult.violations} onSeek={handleSeek} activeViolationId={activeViolationId} /></div></section>{jobResult.violations.length > 0 && <EvidenceGallery violations={jobResult.violations} jobId={jobResult.job_id} />}</div>
-            <aside className="result-events"><div className="events-heading"><div><span className="eyebrow">РЕЗУЛЬТАТ АНАЛИЗА</span><h2>События <span>{jobResult.violations.length}</span></h2></div><ListChecks size={19} /></div><p className="text-xs text-zinc-500 mb-4">Выберите событие, чтобы перейти к фрагменту</p>{jobResult.violations.length === 0 ? <div className="work-panel clean-result"><ShieldCheck size={30} /><h3>Признаки нарушений не найдены</h3><p>В рамках настроенных правил. Результат требует проверки человеком.</p></div> : <div className="space-y-3 stagger-children">{jobResult.violations.map((violation, idx) => <ViolationCard key={violation.id || idx} violation={violation} index={idx} isActive={activeViolationId === violation.id} onSeek={handleSeek} onSelect={() => { setActiveViolationId(violation.id || null); handleSeek(violation.timestamp_sec); }} />)}</div>}<button className="secondary-button w-full mt-4 justify-center" onClick={handleDownloadJson}><ArrowDownToLine size={15} />Экспорт результата JSON</button></aside>
+            <div className="space-y-5 min-w-0"><section className="work-panel video-review-panel" ref={playerSectionRef}><div className="panel-heading"><div className="inspector-heading"><FileVideo size={17} /><h2>Просмотр записи</h2></div><span className="subtle-badge">Исходное видео</span></div><div className="mt-5 space-y-4"><VideoPlayer videoUrl={videoObjectUrl} violations={jobResult.violations} currentTime={currentTime} onTimeUpdate={setCurrentTime} onDurationChange={setDuration} seekTime={seekTargetTime} onSeekComplete={() => setSeekTargetTime(null)} /><Timeline key={jobResult.job_id} duration={jobResult.video_duration_sec ?? duration} currentTime={currentTime} violations={jobResult.violations} observations={jobResult.observations} observationsStatus={jobResult.observations_status} onSeek={handleSeek} activeViolationId={activeViolationId} /></div></section>{jobResult.violations.length > 0 && <EvidenceGallery violations={jobResult.violations} jobId={jobResult.job_id} />}</div>
+            <aside className="result-events"><div className="events-heading"><div><span className="eyebrow">РЕЗУЛЬТАТ АНАЛИЗА</span><h2>Совпадения <span>{jobResult.violations.length}</span></h2></div><ListChecks size={19} /></div><p className="text-xs text-zinc-500 mb-4">Выберите событие, чтобы перейти к фрагменту</p>{jobResult.violations.length === 0 ? <div className="work-panel clean-result"><ShieldCheck size={30} /><h3>Совпадений с правилами не найдено</h3><p>В рамках настроенных правил. Результат требует проверки человеком.</p></div> : <div className="space-y-3 stagger-children">{jobResult.violations.map((violation, idx) => <ViolationCard key={violation.id || idx} violation={violation} index={idx} isActive={activeViolationId === violation.id} onSeek={handleSeek} onSelect={() => { setActiveViolationId(violation.id || null); handleSeek(violation.timestamp_sec); }} />)}</div>}<button className="secondary-button w-full mt-4 justify-center" onClick={handleDownloadJson}><ArrowDownToLine size={15} />Экспорт результата JSON</button></aside>
           </div>
         </div>}
       </main><Footer />

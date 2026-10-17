@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 async function proxy(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;
   const allowed = (request.method === 'POST' && path.join('/') === 'analyze') ||
+    (request.method === 'GET' && path.join('/') === 'rules') ||
     (request.method === 'GET' && /^jobs\/[a-f0-9-]{36}(\/details)?$/.test(path.join('/')));
   if (!allowed) return Response.json({ detail: 'Маршрут не найден' }, { status: 404 });
   const key = process.env.BACKEND_API_KEY;

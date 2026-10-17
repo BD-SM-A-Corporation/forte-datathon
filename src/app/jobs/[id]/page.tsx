@@ -27,7 +27,7 @@ function JobDetailsInner() {
   const [error, setError] = useState<string | null>(null);
 
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(60);
+  const [duration, setDuration] = useState(0);
   const [seekTargetTime, setSeekTargetTime] = useState<number | null>(null);
   const [activeViolationId, setActiveViolationId] = useState<number | null>(null);
 
@@ -122,7 +122,7 @@ function JobDetailsInner() {
         <div className="space-y-8 animate-fadeIn">
           {/* Verdict Banner */}
           <VerdictBanner
-            verdict={job.verdict}
+            assessment={job.assessment}
             violationsCount={job.violations_count}
             filename={job.filename}
             onDownloadJson={handleDownloadJson}
@@ -141,9 +141,12 @@ function JobDetailsInner() {
             />
 
             <Timeline
-              duration={duration}
+              key={job.job_id}
+              duration={job.video_duration_sec ?? duration}
               currentTime={currentTime}
               violations={job.violations}
+              observations={job.observations}
+              observationsStatus={job.observations_status}
               onSeek={handleSeek}
               activeViolationId={activeViolationId}
             />
@@ -161,7 +164,7 @@ function JobDetailsInner() {
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
               <h3 className="text-lg font-bold text-white">
-                Обнаруженные события ({job.violations.length})
+                Совпадения с правилами ({job.violations.length})
               </h3>
               <span className="text-xs font-mono text-zinc-400">
                 ID: {job.job_id}
@@ -171,7 +174,7 @@ function JobDetailsInner() {
             {job.violations.length === 0 ? (
               <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-8 text-center space-y-2">
                 <div className="text-emerald-400 font-bold text-base">
-                  ✓ Нарушений регламентов НБРК не зафиксировано
+                  Совпадений с настроенными правилами не найдено
                 </div>
                 <p className="text-xs text-zinc-400 max-w-md mx-auto">
                   В рамках настроенных правил признаки нарушений не найдены. Требуется проверка человеком.
@@ -204,7 +207,9 @@ function JobDetailsInner() {
 export default function JobDetailsPage() {
   return (
     <div className="min-h-screen flex flex-col bg-[#090a0f] text-zinc-100 bg-cyber-grid">
-      <Header />
+      <Suspense fallback={null}>
+        <Header />
+      </Suspense>
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <Suspense
           fallback={
