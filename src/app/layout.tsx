@@ -1,11 +1,17 @@
-import type { Metadata } from 'next';
-import './globals.css';
+import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'Forte Cash Discipline Check — Контроль кассовой зоны AI',
-  description: 'Автоматический анализ видеозаписей на соблюдение кассовой дисциплины и регламентов НБРК. Локальная обработка без распознавания лиц и звука.',
+  title: "Forte Compliance — Проверка кассовых операций по видео",
+  description:
+    "Forte Compliance — рабочее пространство для просмотра видеозаписей кассовых операций и проверки событий специалистом.",
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: "/Logo/short_Logo.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico" },
+    ],
+    shortcut: "/Logo/short_Logo.svg",
+    apple: "/Logo/short_Logo.svg",
   },
 };
 
@@ -15,13 +21,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="ru"
-      className="h-full antialiased"
-    >
-      <body className="min-h-full flex flex-col bg-[#090a0f] text-zinc-100 selection:bg-[#a11042] selection:text-white">
-        {children}
-      </body>
+    <html lang="ru" className="h-full">
+      <head>
+        <link rel="icon" href="/Logo/short_Logo.svg" type="image/svg+xml" />
+        <link rel="alternate icon" href="/favicon.ico" />
+      </head>
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
 }

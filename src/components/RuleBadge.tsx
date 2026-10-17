@@ -1,4 +1,4 @@
-import { ExternalLink, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { ExternalLink, CheckCircle2 } from 'lucide-react';
 
 interface RuleBadgeProps {
   source?: string | null;

@@ -1,244 +1,420 @@
-'use client';
+"use client";
 
-import React, { useRef, useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, AlertTriangle, SkipForward, SkipBack, Maximize2 } from 'lucide-react';
-import { ViolationResponse } from '@/lib/types';
-import { formatTimestamp } from '@/lib/api';
-import { confidenceExplanation, formatConfidence } from '@/lib/confidence';
+import { useEffect, useRef, useState } from "react";
+import type { ViolationResponse } from "@/lib/types";
+import { SkipBack, SkipForward, RotateCcw, RotateCw, Volume2 } from "lucide-react";
+import { formatConfidence, confidenceExplanation } from "@/lib/confidence";
+import {
+  PlayIcon,
+  PauseIcon,
+  SpeakerXMarkIcon,
+  ArrowsPointingOutIcon,
+  FilmIcon,
+} from "@heroicons/react/24/solid";
 
 interface VideoPlayerProps {
   videoUrl?: string | null;
-  violations: ViolationResponse[];
   currentTime: number;
-  onTimeUpdate: (time: number) => void;
   onDurationChange: (duration: number) => void;
-  seekTime?: number | null;
   onSeekComplete?: () => void;
+  violations: ViolationResponse[];
+  onTimeUpdate?: (currentTime: number) => void;
+  seekTime?: number | null;
+  lang?: "ru" | "kz" | "en";
 }
 
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+const SPEEDS = [0.5, 1, 1.25, 1.5, 2];
+
 export function VideoPlayer({
-  videoUrl,
-  violations,
+  videoUrl: src,
   currentTime,
-  onTimeUpdate,
   onDurationChange,
-  seekTime,
   onSeekComplete,
+  violations,
+  onTimeUpdate,
+  seekTime: seekTo,
+  lang = "ru",
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const [duration, setDuration] = useState(0);
+  const [speed, setSpeed] = useState(1);
+  const [hoverMarker, setHoverMarker] = useState<ViolationResponse | null>(null);
+  const labels = {
+    ru: { play: "Воспроизвести", pause: "Приостановить", silent: "Без звука", fullscreen: "На весь экран", unavailable: "Исходная запись недоступна", unavailableDescription: "Откройте кадры-доказательства ниже или загрузите запись заново." },
+    kz: { play: "Ойнату", pause: "Кідірту", silent: "Дыбыссыз", fullscreen: "Толық экран", unavailable: "Бастапқы бейне қолжетімсіз", unavailableDescription: "Төмендегі дәлел кадрларын қараңыз немесе бейнені қайта жүктеңіз." },
+    en: { play: "Play", pause: "Pause", silent: "Muted", fullscreen: "Fullscreen", unavailable: "Original video unavailable", unavailableDescription: "Review the evidence frames below or upload the recording again." },
+  }[lang];
 
-  // Handle external seek requests from timeline or cards
   useEffect(() => {
-    if (seekTime !== null && seekTime !== undefined && videoRef.current) {
-      videoRef.current.currentTime = seekTime;
+    if (seekTo !== null && seekTo !== undefined && videoRef.current) {
+      videoRef.current.currentTime = seekTo;
+      onTimeUpdate?.(seekTo);
       onSeekComplete?.();
     }
-  }, [seekTime, onSeekComplete]);
+  }, [seekTo, onTimeUpdate, onSeekComplete]);
 
-  const activeViolation = violations.find((v) => {
-    const end = v.end_timestamp_sec && v.end_timestamp_sec > v.timestamp_sec
-      ? v.end_timestamp_sec
-      : v.timestamp_sec + 4.0;
-    return currentTime >= v.timestamp_sec && currentTime <= end;
-  }) ?? null;
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = speed;
+    }
+  }, [speed]);
 
   const togglePlay = () => {
-    if (!videoRef.current) return;
-    if (videoRef.current.paused) {
-      videoRef.current.play();
-      setIsPlaying(true);
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      v.play().catch(() => {});
     } else {
-      videoRef.current.pause();
-      setIsPlaying(false);
+      v.pause();
     }
   };
 
-  const skipSeconds = (delta: number) => {
-    if (!videoRef.current) return;
-    videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime + delta);
+  const handleTimeUpdate = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    onTimeUpdate?.(v.currentTime);
   };
 
-  const jumpToNextViolation = () => {
-    if (!videoRef.current || violations.length === 0) return;
-    const next = violations.find((v) => v.timestamp_sec > currentTime + 0.5);
-    if (next) {
-      videoRef.current.currentTime = next.timestamp_sec;
-    } else {
-      videoRef.current.currentTime = violations[0].timestamp_sec;
-    }
+  const handleLoadedMetadata = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    setDuration(v.duration);
+    onDurationChange(v.duration);
+    v.playbackRate = speed;
   };
 
-  const jumpToPrevViolation = () => {
-    if (!videoRef.current || violations.length === 0) return;
-    const prev = [...violations].reverse().find((v) => v.timestamp_sec < currentTime - 1.0);
-    if (prev) {
-      videoRef.current.currentTime = prev.timestamp_sec;
-    } else {
-      videoRef.current.currentTime = violations[violations.length - 1].timestamp_sec;
-    }
+  const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const bar = timelineRef.current;
+    if (!bar || !videoRef.current || duration === 0) return;
+    const rect = bar.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const target = ratio * duration;
+    videoRef.current.currentTime = target;
+    onTimeUpdate?.(target);
   };
 
   const toggleFullscreen = () => {
-    if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen?.();
+    const v = videoRef.current;
+    if (!v) return;
+    if (document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => {});
     } else {
-      document.exitFullscreen?.();
+      void v.requestFullscreen().catch(() => {});
     }
   };
 
+  const seek = (time: number) => {
+    if (!videoRef.current) return;
+    const target = Math.max(0, Math.min(duration || time, time));
+    videoRef.current.currentTime = target;
+    onTimeUpdate?.(target);
+  };
+  const ordered = [...violations].sort((a, b) => a.timestamp_sec - b.timestamp_sec);
+  const jump = (direction: number) => {
+    const event = direction > 0
+      ? ordered.find(v => v.timestamp_sec > currentTime + 0.5) ?? ordered[0]
+      : [...ordered].reverse().find(v => v.timestamp_sec < currentTime - 1) ?? ordered.at(-1);
+    if (event) seek(event.timestamp_sec);
+  };
+  const activeViolation = violations.find(v => currentTime >= v.timestamp_sec && currentTime <= (v.end_timestamp_sec ?? v.timestamp_sec + 4));
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  if (!src) {
+    return (
+      <div
+        className="card-corporate"
+        style={{ aspectRatio: "16 / 9", minHeight: 220, padding: 24, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 12, textAlign: "center", background: "var(--forte-surface-2)" }}
+      >
+        <FilmIcon aria-hidden="true" style={{ width: 36, height: 36, color: "var(--forte-text-muted)" }} />
+        <p style={{ fontSize: 14, fontWeight: 600, color: "var(--forte-text-primary)" }}>{labels.unavailable}</p>
+        <p style={{ maxWidth: 380, fontSize: 12, lineHeight: 1.6, color: "var(--forte-text-muted)" }}>{labels.unavailableDescription}</p>
+      </div>
+    );
+  }
+
   return (
     <div
-      ref={containerRef}
-      className="relative w-full overflow-hidden rounded-2xl border border-white/[0.12] bg-black shadow-2xl group"
+      className="card-corporate"
+      style={{
+        overflow: "hidden",
+        backgroundColor: "#000000",
+        position: "relative",
+      }}
     >
-      {/* Video Container */}
-      <div className="relative aspect-video w-full bg-zinc-950 flex items-center justify-center">
-        {videoUrl ? (
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            className="h-full w-full object-contain cursor-pointer"
-            onClick={togglePlay}
-            onTimeUpdate={() => {
-              if (videoRef.current) {
-                onTimeUpdate(videoRef.current.currentTime);
-              }
-            }}
-            onLoadedMetadata={() => {
-              if (videoRef.current) {
-                onDurationChange(videoRef.current.duration);
-              }
-            }}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            playsInline
-            muted={isMuted}
-          />
-        ) : (
-          /* Placeholder player with simulated CCTV footage view */
+      {/* Video Element */}
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          paddingTop: "56.25%", // 16:9 aspect ratio
+          backgroundColor: "#0A0B0D",
+          cursor: "pointer",
+        }}
+        onClick={togglePlay}
+      >
+        <video
+          ref={videoRef}
+          src={src || undefined}
+          muted={muted}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onEmptied={() => {
+            onTimeUpdate?.(0);
+            setDuration(0);
+            setPlaying(false);
+          }}
+          onEnded={() => setPlaying(false)}
+          playsInline
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+          }}
+        />
+
+        {/* Center play icon when paused */}
+        {!playing && (
           <div
-            onClick={togglePlay}
-            className="relative h-full w-full flex flex-col items-center justify-center bg-gradient-to-br from-zinc-900 to-[#12131c] cursor-pointer"
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "rgba(0,0,0,0.35)",
+              pointerEvents: "none",
+            }}
           >
-            <div className="text-center space-y-2 p-6">
-              <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#a11042]/20 text-[#f43f5e] border border-[#a11042]/40">
-                <Play className="h-7 w-7 ml-1" />
-              </div>
-              <p className="text-sm font-semibold text-white">Исходная запись недоступна</p>
-              <p className="text-xs text-zinc-400 max-w-sm">
-                Откройте кадры-доказательства ниже или загрузите запись заново.
-              </p>
+            <div
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: "50%",
+                backgroundColor: "var(--forte-brand)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#FFFFFF",
+                boxShadow: "0 4px 14px rgba(0,0,0,0.4)",
+              }}
+            >
+              <PlayIcon style={{ width: 24, height: 24, marginLeft: 2 }} />
             </div>
           </div>
         )}
 
-        {/* ACTIVE VIOLATION OVERLAY HUD - Pulses when incident occurs */}
-        {activeViolation && (
-          <div className="pointer-events-none absolute top-4 inset-x-4 z-30 flex items-center justify-between rounded-xl border border-red-500/60 bg-red-950/85 p-3 backdrop-blur-md shadow-2xl">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-600 text-white">
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-xs uppercase tracking-wider text-red-200">
-                    АКТИВНОЕ СОБЫТИЕ:
-                  </span>
-                  <span className="font-mono text-xs text-red-300 font-bold">
-                    {formatTimestamp(activeViolation.timestamp_sec)}
-                  </span>
-                </div>
-                <div className="text-sm font-bold text-white">{activeViolation.title}</div>
-              </div>
-            </div>
-
-            <div className="hidden sm:flex flex-col items-end text-right" title={confidenceExplanation}>
-              <span className="text-[10px] uppercase tracking-wider text-red-300">Самооценка модели</span>
-              <span className="font-mono text-xs font-bold text-white">
-                {formatConfidence(activeViolation.confidence)}
-              </span>
-            </div>
+        {activeViolation && <div className="player-event" role="status">
+          <strong>{activeViolation.title}</strong>
+          <span title={confidenceExplanation}>Самооценка: {formatConfidence(activeViolation.confidence)}</span>
+        </div>}
+        {/* Marker Hover Tooltip */}
+        {hoverMarker && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: 48,
+              left: `${Math.min(
+                90,
+                Math.max(10, (hoverMarker.timestamp_sec / (duration || 1)) * 100)
+              )}%`,
+              transform: "translateX(-50%)",
+              backgroundColor: "var(--forte-surface)",
+              color: "var(--forte-text-primary)",
+              border: "1px solid var(--pastel-red-border)",
+              borderRadius: 6,
+              padding: "6px 10px",
+              fontSize: 11,
+              whiteSpace: "nowrap",
+              pointerEvents: "none",
+              zIndex: 20,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            }}
+          >
+            <span style={{ color: "var(--pastel-red)", fontWeight: 700 }}>
+              {formatTime(hoverMarker.timestamp_sec)}
+            </span>{" "}
+            — {hoverMarker.title}
           </div>
         )}
       </div>
 
-      {/* Control Bar */}
-      <div className="flex items-center justify-between border-t border-white/10 bg-zinc-950/90 px-4 py-3 backdrop-blur-md text-zinc-300">
-        <div className="flex items-center gap-2 sm:gap-4">
-          {/* Play/Pause */}
-          <button
-            onClick={togglePlay}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white hover:bg-[#a11042] hover:text-white transition-colors"
-            title={isPlaying ? 'Пауза' : 'Воспроизведение'}
-          >
-            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
-          </button>
+      {/* Corporate Controls Strip */}
+      <div
+        style={{
+          padding: "10px 14px",
+          background: "var(--forte-surface)",
+          borderTop: "1px solid var(--forte-border)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
+      >
+        {/* Timeline Bar */}
+        <div
+          ref={timelineRef}
+          onClick={handleTimelineClick}
+          style={{
+            position: "relative",
+            height: 10,
+            borderRadius: 5,
+            backgroundColor: "var(--forte-surface-2)",
+            border: "1px solid var(--forte-border)",
+            cursor: "pointer",
+          }}
+        >
+          {/* Active progress */}
+          <div
+            style={{
+              height: "100%",
+              width: `${progress}%`,
+              borderRadius: 5,
+              backgroundColor: "var(--forte-brand)",
+              transition: "width 0.1s linear",
+            }}
+          />
 
-          {/* Jump to Violations */}
-          <div className="flex items-center gap-1 border-l border-white/10 pl-2">
-            <button
-              onClick={jumpToPrevViolation}
-              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/10 text-zinc-300 hover:text-white transition-colors"
-              title="Предыдущее нарушение"
-            >
-              <SkipBack className="h-4 w-4" />
-            </button>
-            <button
-              onClick={jumpToNextViolation}
-              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/10 text-zinc-300 hover:text-white transition-colors"
-              title="Следующее нарушение"
-            >
-              <SkipForward className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* Rewind / Fast Forward 5s */}
-          <div className="hidden sm:flex items-center gap-1">
-            <button
-              onClick={() => skipSeconds(-5)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/10 text-zinc-300 hover:text-white transition-colors"
-              title="-5 секунд"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => skipSeconds(5)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/10 text-zinc-300 hover:text-white transition-colors"
-              title="+5 секунд"
-            >
-              <RotateCw className="h-3.5 w-3.5" />
-            </button>
-          </div>
-
-          {/* Current time */}
-          <span className="font-mono text-xs font-semibold text-white ml-1">
-            {formatTimestamp(currentTime)}
-          </span>
+        {/* Timestamps of events marked for human review */}
+          {duration > 0 &&
+            violations.map((v, i) => {
+              const leftPct = (v.timestamp_sec / duration) * 100;
+              return (
+                <div
+                  key={i}
+                  onMouseEnter={() => setHoverMarker(v)}
+                  onMouseLeave={() => setHoverMarker(null)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (videoRef.current) {
+                      videoRef.current.currentTime = v.timestamp_sec;
+                      videoRef.current.play().catch(() => {});
+                      setPlaying(true);
+                    }
+                  }}
+                  style={{
+                    position: "absolute",
+                    top: -2,
+                    left: `${leftPct}%`,
+                    width: 14,
+                    height: 14,
+                    borderRadius: "50%",
+                    transform: "translateX(-50%)",
+                    backgroundColor: "var(--pastel-red)",
+                    border: "2px solid var(--forte-surface)",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                    cursor: "pointer",
+                    zIndex: 10,
+                  }}
+                  title={`${v.title} (${formatTime(v.timestamp_sec)})`}
+                />
+              );
+            })}
         </div>
 
-        {/* Right side controls */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsMuted(!isMuted)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/10 text-zinc-300 hover:text-white transition-colors"
-            title={isMuted ? 'Включить звук' : 'Выключить звук'}
-          >
-            {isMuted ? <VolumeX className="h-4 w-4 text-zinc-400" /> : <Volume2 className="h-4 w-4 text-emerald-400" />}
-          </button>
+        <input type="range" min={0} max={duration || 0} step={0.01} value={Math.min(currentTime, duration || 0)} onChange={event => seek(Number(event.target.value))} aria-label="Позиция видео" className="player-seek" />
+        <div className="player-navigation">
+          <button className="btn-secondary" onClick={() => jump(-1)} disabled={!violations.length} title="Предыдущее событие"><SkipBack size={15} /></button>
+          <button className="btn-secondary" onClick={() => seek(currentTime - 5)} title="-5 секунд"><RotateCcw size={15} /></button>
+          <button className="btn-secondary" onClick={() => seek(currentTime + 5)} title="+5 секунд"><RotateCw size={15} /></button>
+          <button className="btn-secondary" onClick={() => jump(1)} disabled={!violations.length} title="Следующее событие"><SkipForward size={15} /></button>
+        </div>
+        {/* Buttons Row */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          {/* Left: Play/Pause, visual-only preview, Time display */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={togglePlay}
+              aria-label={playing ? labels.pause : labels.play}
+              style={{ padding: "6px 10px" }}
+            >
+              {playing ? (
+                <PauseIcon style={{ width: 16, height: 16 }} />
+              ) : (
+                <PlayIcon style={{ width: 16, height: 16 }} />
+              )}
+            </button>
 
-          <button
-            onClick={toggleFullscreen}
-            className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/10 text-zinc-300 hover:text-white transition-colors"
-            title="Во весь экран"
-          >
-            <Maximize2 className="h-4 w-4" />
-          </button>
+            <button className="btn-secondary" title={muted ? "Включить звук" : "Выключить звук"} onClick={() => setMuted(!muted)}>{muted ? <SpeakerXMarkIcon width={16} height={16} /> : <Volume2 size={16} />}</button>
+
+            <div
+              style={{
+                fontSize: 12,
+                fontFamily: "monospace",
+                color: "var(--forte-text-secondary)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </div>
+          </div>
+
+          {/* Right: Speeds & Fullscreen */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", gap: 4 }}>
+              {SPEEDS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSpeed(s)}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: "3px 6px",
+                    borderRadius: 4,
+                    border: "1px solid",
+                    borderColor:
+                      speed === s
+                        ? "var(--forte-brand)"
+                        : "var(--forte-border)",
+                    backgroundColor:
+                      speed === s
+                        ? "var(--forte-brand)"
+                        : "var(--forte-surface-2)",
+                    color: speed === s ? "#FFFFFF" : "var(--forte-text-secondary)",
+                    cursor: "pointer",
+                  }}
+                >
+                  {s}x
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={toggleFullscreen}
+              style={{ padding: "6px 8px" }}
+              title={labels.fullscreen}
+            >
+              <ArrowsPointingOutIcon style={{ width: 15, height: 15 }} />
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+export default VideoPlayer;

@@ -88,7 +88,7 @@ function JobDetailsInner() {
     <div className="space-y-6">
       <Link
         href="/"
-        className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-400 hover:text-white transition-colors"
+        className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
         <span>К экрану загрузки нового видео</span>
@@ -96,14 +96,14 @@ function JobDetailsInner() {
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-24 space-y-4">
-          <Loader2 className="h-10 w-10 animate-spin text-[#f43f5e]" />
-          <p className="text-sm text-zinc-400">Загрузка данных анализа #{jobId}...</p>
+          <Loader2 className="h-10 w-10 animate-spin text-sky-600" />
+          <p className="text-sm text-slate-600">Загрузка данных анализа #{jobId}...</p>
         </div>
       ) : error ? (
         <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-8 text-center space-y-3">
-          <AlertCircle className="h-8 w-8 text-red-400 mx-auto" />
-          <h2 className="text-lg font-bold text-white">Не удалось открыть запись #{jobId}</h2>
-          <p className="text-xs text-zinc-400">{error}</p>
+          <AlertCircle className="h-8 w-8 text-red-700 mx-auto" />
+          <h2 className="text-lg font-bold text-slate-900">Не удалось открыть запись #{jobId}</h2>
+          <p className="text-xs text-slate-600">{error}</p>
         </div>
       ) : job && (job.status === 'processing' || job.status === 'pending' || job.status === 'failed') ? (
         <div className="py-8 space-y-6">
@@ -162,21 +162,21 @@ function JobDetailsInner() {
 
           {/* Violations List */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
-              <h3 className="text-lg font-bold text-white">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 className="text-lg font-bold text-slate-900">
                 Совпадения с правилами ({job.violations.length})
               </h3>
-              <span className="text-xs font-mono text-zinc-400">
+              <span className="text-xs font-mono text-slate-600">
                 ID: {job.job_id}
               </span>
             </div>
 
             {job.violations.length === 0 ? (
-              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-8 text-center space-y-2">
-                <div className="text-emerald-400 font-bold text-base">
+              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-50 p-8 text-center space-y-2">
+                <div className="text-emerald-800 font-bold text-base">
                   Совпадений с настроенными правилами не найдено
                 </div>
-                <p className="text-xs text-zinc-400 max-w-md mx-auto">
+                <p className="text-xs text-slate-600 max-w-md mx-auto">
                   В рамках настроенных правил признаки нарушений не найдены. Требуется проверка человеком.
                 </p>
               </div>
@@ -206,7 +206,7 @@ function JobDetailsInner() {
 
 export default function JobDetailsPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-[#090a0f] text-zinc-100 bg-cyber-grid">
+    <div className="min-h-screen flex flex-col text-slate-900 bg-cyber-grid">
       <Suspense fallback={null}>
         <Header />
       </Suspense>
@@ -214,8 +214,8 @@ export default function JobDetailsPage() {
         <Suspense
           fallback={
             <div className="flex flex-col items-center justify-center py-24 space-y-4">
-              <Loader2 className="h-10 w-10 animate-spin text-[#f43f5e]" />
-              <p className="text-sm text-zinc-400">Инициализация страницы...</p>
+              <Loader2 className="h-10 w-10 animate-spin text-sky-600" />
+              <p className="text-sm text-slate-600">Инициализация страницы...</p>
             </div>
           }
         >

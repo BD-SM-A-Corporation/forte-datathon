@@ -36,16 +36,16 @@ export function Timeline({ duration, currentTime, violations, observations, obse
 
   return (
     <div
-      className="w-full rounded-xl border border-white/[0.08] bg-black/40 p-4 space-y-4 backdrop-blur-md"
+      className="w-full rounded-xl border border-slate-200 bg-white p-4 space-y-4 backdrop-blur-md"
       onKeyDown={event => { if (event.key === 'Escape') setPreview(null); }}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-400">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
         <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-[#f43f5e]" />
-          <span className="font-semibold text-white">Таймлайн записи</span>
+          <Clock className="h-4 w-4 text-sky-600" />
+          <span className="font-semibold text-slate-900">Таймлайн записи</span>
           <span>{events.length} наблюдений и событий</span>
         </div>
-        <span className="font-mono text-zinc-300">{formatTimestamp(currentTime)} / {formatTimestamp(totalDuration)}</span>
+        <span className="font-mono text-slate-700">{formatTimestamp(currentTime)} / {formatTimestamp(totalDuration)}</span>
       </div>
 
       <div className="relative h-16" onPointerMove={inspectPosition}>
@@ -65,7 +65,7 @@ export function Timeline({ duration, currentTime, violations, observations, obse
               onPointerMove={event => event.stopPropagation()}
               onFocus={() => setPreview({ groupId: first.id })}
               onClick={() => { setPreview({ groupId: first.id }); onSeek(first.start); }}
-              className={`absolute top-0 z-20 flex h-8 min-w-8 items-center justify-center gap-1 rounded-full border px-1.5 text-xs font-semibold shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${matched ? 'border-rose-400 bg-rose-950 text-rose-100' : 'border-sky-400 bg-sky-950 text-sky-100'} ${selected ? 'ring-2 ring-white/70' : ''}`}
+              className={`absolute top-0 z-20 flex h-8 min-w-8 items-center justify-center gap-1 rounded-full border px-1.5 text-xs font-semibold shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 ${matched ? 'border-rose-400 bg-rose-50 text-rose-800' : 'border-sky-400 bg-sky-50 text-sky-800'} ${selected ? 'ring-2 ring-sky-500/70' : ''}`}
               style={{ left: `clamp(0px, calc(${percent(first.start)}% - 16px), calc(100% - 40px))` }}
             >
               {matched ? <AlertCircle className="h-3.5 w-3.5" /> : <MessageSquareText className="h-3.5 w-3.5" />}
@@ -74,13 +74,13 @@ export function Timeline({ duration, currentTime, violations, observations, obse
           );
         })}
 
-        <div className="absolute inset-x-0 bottom-1 h-4 rounded bg-zinc-800">
+        <div className="absolute inset-x-0 bottom-1 h-4 rounded bg-slate-200">
           {events.map(event => (
             <div key={event.id} className={`absolute inset-y-0 rounded ${event.rules.length ? 'bg-rose-500/40' : 'bg-sky-400/25'}`}
               style={{ left: `${percent(event.start)}%`, width: `${Math.max(0, percent(event.end) - percent(event.start))}%` }} />
           ))}
-          <div className="absolute inset-y-0 left-0 rounded bg-white/15" style={{ width: `${percent(currentTime)}%` }} />
-          <div className="pointer-events-none absolute -inset-y-1 w-0.5 bg-white" style={{ left: `min(${percent(currentTime)}%, calc(100% - 2px))` }} />
+          <div className="absolute inset-y-0 left-0 rounded bg-sky-500/15" style={{ width: `${percent(currentTime)}%` }} />
+          <div className="pointer-events-none absolute -inset-y-1 w-0.5 bg-sky-700" style={{ left: `min(${percent(currentTime)}%, calc(100% - 2px))` }} />
         </div>
         <input
           type="range" min={0} max={totalDuration} step={0.01}
@@ -94,54 +94,54 @@ export function Timeline({ duration, currentTime, violations, observations, obse
         />
       </div>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-zinc-400">
+      <div className="flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-slate-600">
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-sky-400" />Наблюдение модели</span>
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-rose-400" />Совпадение с правилом — нужна проверка</span>
       </div>
 
       {observationsStatus === 'unavailable' && (
-        <p className="text-xs text-amber-300">Подробные наблюдения недоступны. Показаны только сохранённые совпадения с правилами. Обновите страницу, чтобы повторить загрузку.</p>
+        <p className="text-xs text-amber-800">Подробные наблюдения недоступны. Показаны только сохранённые совпадения с правилами. Обновите страницу, чтобы повторить загрузку.</p>
       )}
 
-      <section id={panelId} aria-label="Описание модели для фрагмента" className="rounded-lg border border-white/10 bg-zinc-950/80 p-3 sm:p-4">
+      <section id={panelId} aria-label="Описание модели для фрагмента" className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-zinc-100">Что описала модель</h3>
-            <p className="mt-1 text-xs text-zinc-400">Наведите на шкалу или маркер. Нажатие перемещает запись. Описание остаётся открытым для чтения.</p>
+            <h3 className="text-sm font-semibold text-slate-900">Что описала модель</h3>
+            <p className="mt-1 text-xs text-slate-600">Наведите на шкалу или маркер. Нажатие перемещает запись. Описание остаётся открытым для чтения.</p>
           </div>
-          {preview && <button type="button" onClick={() => setPreview(null)} aria-label="Закрыть описание фрагмента" className="rounded p-1 text-zinc-400 hover:text-white focus-visible:outline-2 focus-visible:outline-white"><X className="h-4 w-4" /></button>}
+          {preview && <button type="button" onClick={() => setPreview(null)} aria-label="Закрыть описание фрагмента" className="rounded p-1 text-slate-600 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-sky-600"><X className="h-4 w-4" /></button>}
         </div>
 
         {preview && previewEvents.length === 0 && (
-          <p className="mt-3 text-sm text-zinc-400">В этой точке нет сохранённого наблюдения. Это не означает отсутствие нарушения.</p>
+          <p className="mt-3 text-sm text-slate-600">В этой точке нет сохранённого наблюдения. Это не означает отсутствие нарушения.</p>
         )}
         {!preview && events.length === 0 && observationsStatus === 'available' && (
-          <p className="mt-3 text-sm text-zinc-400">Модель не вернула наблюдений для этой записи.</p>
+          <p className="mt-3 text-sm text-slate-600">Модель не вернула наблюдений для этой записи.</p>
         )}
         {previewEvents.length > 0 && (
           <div className="mt-4 max-h-80 space-y-4 overflow-y-auto overscroll-contain pr-1">
             {previewEvents.map(event => (
-              <article key={event.id} className="space-y-2 border-t border-white/10 pt-3 first:border-0 first:pt-0">
+              <article key={event.id} className="space-y-2 border-t border-slate-200 pt-3 first:border-0 first:pt-0">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <button type="button" onClick={() => onSeek(event.start)} className="rounded font-mono text-xs text-sky-300 underline decoration-sky-300/40 underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-white" aria-label={`Перейти к ${formatTimestamp(event.start)}`}>
+                  <button type="button" onClick={() => onSeek(event.start)} className="rounded font-mono text-xs text-sky-700 underline decoration-sky-300/40 underline-offset-4 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-sky-600" aria-label={`Перейти к ${formatTimestamp(event.start)}`}>
                     {formatTimestamp(event.start)} — {formatTimestamp(event.end)}
                   </button>
-                  <span className="text-xs text-zinc-300" title={confidenceExplanation}>Самооценка: {formatConfidence(event.confidence)}</span>
+                  <span className="text-xs text-slate-700" title={confidenceExplanation}>Самооценка: {formatConfidence(event.confidence)}</span>
                 </div>
-                <h4 className="text-sm font-semibold text-white">{event.title}</h4>
+                <h4 className="text-sm font-semibold text-slate-900">{event.title}</h4>
                 <p className="text-[11px] text-zinc-500">{event.originalObservation ? 'Исходное описание модели, без перевода' : 'Сохранённое описание совпадения; исходное наблюдение недоступно'}</p>
-                <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-zinc-200">{event.description}</p>
-                <div className="text-xs text-zinc-400">
-                  <span className="font-medium text-zinc-300">Неопределённости: </span>
+                <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700">{event.description}</p>
+                <div className="text-xs text-slate-600">
+                  <span className="font-medium text-slate-700">Неопределённости: </span>
                   {event.uncertainties.length ? <ul className="mt-1 list-disc space-y-1 pl-4">{event.uncertainties.map((text, index) => <li key={index} className="break-words">{text}</li>)}</ul> : 'не указаны моделью'}
                 </div>
-                {event.evidence.length > 0 && <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400">Опорные кадры: {event.evidence.map(time => <button key={time} type="button" onClick={() => onSeek(time)} className="rounded border border-white/15 px-2 py-1 font-mono text-zinc-200 hover:border-sky-400 focus-visible:outline-2 focus-visible:outline-white" aria-label={`Перейти к опорному кадру ${formatTimestamp(time)}`}>{formatTimestamp(time)}</button>)}</div>}
-                {event.rules.length > 0 && <p className="break-words text-xs text-rose-300">Совпадения: {event.rules.join('; ')}. Требуется проверка человеком.</p>}
+                {event.evidence.length > 0 && <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">Опорные кадры: {event.evidence.map(time => <button key={time} type="button" onClick={() => onSeek(time)} className="rounded border border-slate-200 px-2 py-1 font-mono text-slate-700 hover:border-sky-400 focus-visible:outline-2 focus-visible:outline-sky-600" aria-label={`Перейти к опорному кадру ${formatTimestamp(time)}`}>{formatTimestamp(time)}</button>)}</div>}
+                {event.rules.length > 0 && <p className="break-words text-xs text-sky-700">Совпадения: {event.rules.join('; ')}. Требуется проверка человеком.</p>}
               </article>
             ))}
           </div>
         )}
-        {previewEvents.length > 0 && <p className="mt-3 border-t border-white/10 pt-3 text-[11px] text-zinc-500">{confidenceExplanation} Описание может содержать ошибки и не является окончательным решением.</p>}
+        {previewEvents.length > 0 && <p className="mt-3 border-t border-slate-200 pt-3 text-[11px] text-zinc-500">{confidenceExplanation} Описание может содержать ошибки и не является окончательным решением.</p>}
       </section>
     </div>
   );

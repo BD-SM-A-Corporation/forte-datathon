@@ -1,33 +1,190 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Check, FileVideo, UploadCloud, X, AlertCircle, LockKeyhole } from 'lucide-react';
-import { formatFileSize } from '@/lib/api';
+import { useId, useState } from "react";
+import { ArrowUpTrayIcon, FilmIcon } from "@heroicons/react/24/outline";
 
-export function DropZone({ onStartAnalysis, isLoading }: { onStartAnalysis: (file: File | null) => void; isLoading: boolean }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [dragging, setDragging] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const input = useRef<HTMLInputElement>(null);
-  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
-  const select = (next: File) => {
+interface DropZoneProps {
+  onFile: (file: File) => void;
+  disabled?: boolean;
+  lang?: "ru" | "kz" | "en";
+}
+
+const ACCEPT = ".mov,video/quicktime";
+
+function isSupportedVideo(file: File) {
+  return /\.mov$/i.test(file.name);
+}
+
+export default function DropZone({ onFile, disabled, lang = "ru" }: DropZoneProps) {
+  const [dragOver, setDragOver] = useState(false);
+  const [focusWithin, setFocusWithin] = useState(false);
+  const [error, setError] = useState<"multiple" | "unsupported" | "size" | null>(null);
+  const descriptionId = useId();
+  const errorId = useId();
+  const isDragging = dragOver && !disabled;
+
+  const t = {
+    ru: {
+      dragTitle: "Перетащите видео кассовой операции сюда",
+      orBrowse: "или выберите файл на компьютере",
+      formats: "MOV · до 512 МБ",
+      buttonText: "Выбрать видеофайл",
+      size: "Выберите непустой файл размером до 512 МБ.",
+      multiple: "Выберите один видеофайл. Несколько файлов одновременно не поддерживаются.",
+      unsupported: "Выберите видео в формате MOV.",
+    },
+    kz: {
+      dragTitle: "Кассалық операция бейнесін осында сүйреңіз",
+      orBrowse: "немесе компьютерден файлды таңдаңыз",
+      formats: "MOV · 512 МБ дейін",
+      buttonText: "Бейнефайлды таңдау",
+      size: "512 МБ дейінгі бос емес файлды таңдаңыз.",
+      multiple: "Бір бейнефайлды таңдаңыз. Бірнеше файлды қатар жүктеуге болмайды.",
+      unsupported: "MOV форматындағы бейнені таңдаңыз.",
+    },
+    en: {
+      dragTitle: "Drag a video of a cash operation here",
+      orBrowse: "or browse from your computer",
+      formats: "MOV · up to 512 MB",
+      buttonText: "Choose video file",
+      size: "Choose a non-empty file up to 512 MB.",
+      multiple: "Choose one video file. Multiple files cannot be selected at the same time.",
+      unsupported: "Choose a video in MOV format.",
+    },
+  }[lang];
+
+  const selectFiles = (files: FileList | null) => {
+    if (disabled || !files?.length) return;
+    if (files.length !== 1) {
+      setError("multiple");
+      return;
+    }
+    const file = files[0];
+    if (!isSupportedVideo(file)) {
+      setError("unsupported");
+      return;
+    }
+    if (!file.size || file.size > 512 * 1024 * 1024) {
+      setError("size");
+      return;
+    }
     setError(null);
-    if (!next.name.toLowerCase().endsWith('.mov')) { setError('Поддерживается формат .mov. Выберите другую запись.'); return; }
-    if (!next.size || next.size > 512 * 1024 * 1024) { setError('Выберите непустую запись размером до 512 МБ.'); return; }
-    setFile(next);
-    setPreview(URL.createObjectURL(next));
+    onFile(file);
   };
-  return <section className="work-panel upload-panel">
-    <div className="panel-heading"><div><span className="eyebrow">НОВАЯ ПРОВЕРКА</span><h2>Загрузите видеозапись</h2></div><span className="subtle-badge">.MOV</span></div>
-    <p className="panel-description">Добавьте запись кассовой зоны, чтобы найти события, требующие внимания.</p>
-    <input ref={input} type="file" accept=".mov,video/quicktime" className="sr-only" tabIndex={-1} onChange={e => { if (e.target.files?.[0]) select(e.target.files[0]); e.target.value = ''; }} />
-    <button type="button" disabled={isLoading} onClick={() => input.current?.click()} onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={e => { e.preventDefault(); setDragging(false); if (e.dataTransfer.files[0]) select(e.dataTransfer.files[0]); }} className={`upload-target ${dragging ? 'is-dragging' : ''} ${file ? 'has-file' : ''}`}>
-      {file && preview ? <video src={preview} muted playsInline preload="metadata" className="upload-preview" /> : <><span className="upload-orbit orbit-one" /><span className="upload-orbit orbit-two" /></>}
-      <span className="upload-target-content"><span className="upload-icon">{file ? <Check size={26} /> : <UploadCloud size={28} />}</span><strong>{file ? 'Видеозапись готова к проверке' : 'Перетащите видео в эту область'}</strong><span>{file ? 'Нажмите, чтобы выбрать другой файл' : 'или нажмите, чтобы выбрать файл на компьютере'}</span>{!file && <span className="upload-format">MOV <i /> до 512 МБ <i /> одна запись</span>}</span>
-    </button>
-    {file ? <div className="selected-file animate-fadeIn"><span className="file-symbol"><FileVideo size={20} /></span><div><strong>{file.name}</strong><span>{formatFileSize(file.size)} · QuickTime video</span></div><button aria-label="Убрать файл" onClick={() => { setFile(null); setPreview(null); }}><X size={16} /></button></div> : <div className="file-requirements"><FileVideo size={15} /><span>Для лучшего результата используйте исходную запись камеры</span></div>}
-    {error && <p role="alert" className="upload-error"><AlertCircle size={16} />{error}</p>}
-    <div className="upload-actions"><span><LockKeyhole size={14} />Без передачи в облачный AI</span><button className="primary-button" disabled={!file || isLoading} onClick={() => onStartAnalysis(file)}>Начать проверку<ArrowRight size={16} /></button></div>
-  </section>;
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (disabled) return;
+    selectFiles(e.dataTransfer.files);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
+    selectFiles(e.target.files);
+    e.target.value = "";
+  };
+
+  return (
+    <label
+      className="card-corporate"
+      aria-disabled={disabled || undefined}
+      onFocus={() => setFocusWithin(true)}
+      onBlur={() => setFocusWithin(false)}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "48px 24px",
+        gap: 16,
+        cursor: disabled ? "not-allowed" : "pointer",
+        minHeight: 220,
+        border: isDragging
+          ? "2px dashed var(--forte-brand)"
+          : "2px dashed var(--forte-border)",
+        backgroundColor: isDragging
+          ? "var(--forte-surface-2)"
+          : "var(--forte-surface)",
+        transition: "all 0.15s ease",
+        outline: focusWithin && !disabled ? "2px solid var(--forte-brand)" : undefined,
+        outlineOffset: 4,
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        if (disabled) return;
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={handleDrop}
+    >
+      <input
+        type="file"
+        accept={ACCEPT}
+        className="sr-only"
+        aria-label={t.buttonText}
+        aria-describedby={error ? `${descriptionId} ${errorId}` : descriptionId}
+        aria-invalid={error ? true : undefined}
+        onChange={handleChange}
+        disabled={disabled}
+      />
+
+      {/* Upload icon container */}
+      <div
+        style={{
+          width: 54,
+          height: 54,
+          borderRadius: "50%",
+          backgroundColor: isDragging
+            ? "rgba(14, 133, 230, 0.12)"
+            : "var(--forte-surface-2)",
+          border: "1px solid var(--forte-border)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: isDragging ? "var(--forte-brand)" : "var(--forte-text-secondary)",
+          transition: "all 0.15s ease",
+        }}
+      >
+        <ArrowUpTrayIcon style={{ width: 24, height: 24 }} />
+      </div>
+
+      <div style={{ textAlign: "center" }}>
+        <p
+          style={{
+            fontSize: 15,
+            fontWeight: 600,
+            color: "var(--forte-text-primary)",
+            marginBottom: 4,
+          }}
+        >
+          {t.dragTitle}
+        </p>
+        <p
+          style={{
+            fontSize: 13,
+            color: "var(--forte-text-muted)",
+          }}
+        >
+          {t.orBrowse}
+        </p>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <FilmIcon style={{ width: 14, height: 14, color: "var(--forte-text-muted)" }} />
+        <span id={descriptionId} style={{ fontSize: 11, color: "var(--forte-text-muted)", textAlign: "center" }}>
+          {t.formats}
+        </span>
+      </div>
+
+      <span className="btn-secondary" style={{ marginTop: 4 }}>
+        {t.buttonText}
+      </span>
+      {error && (
+        <p id={errorId} role="alert" style={{ color: "var(--pastel-red-text)", fontSize: 12, lineHeight: 1.5, textAlign: "center" }}>
+          {t[error]}
+        </p>
+      )}
+    </label>
+  );
 }
