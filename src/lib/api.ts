@@ -32,10 +32,14 @@ export async function getJobStatus(jobId: string): Promise<JobResponse> {
   let observations: ObservationResponse[] = [];
   let observationsStatus: JobResponse['observations_status'] = 'unavailable';
   let videoDuration: number | null = null;
+  let ruleChecks: JobResponse['rule_checks'] = [];
+  let verificationSummary: JobResponse['verification_summary'] = null;
   if (raw.status === 'done') {
     try {
-      const audit = await request<{ details: { matches?: Match[]; observations?: Observation[]; metrics?: { video_duration_sec?: number } } | null }>(`jobs/${encodeURIComponent(jobId)}/details`);
+      const audit = await request<{ details: { matches?: Match[]; observations?: Observation[]; metrics?: { video_duration_sec?: number }; rule_checks?: JobResponse['rule_checks']; verification_summary?: JobResponse['verification_summary'] } | null }>(`jobs/${encodeURIComponent(jobId)}/details`);
       matches = audit.details?.matches || [];
+      ruleChecks = audit.details?.rule_checks ?? [];
+      verificationSummary = audit.details?.verification_summary ?? null;
       if (Array.isArray(audit.details?.observations)) {
         observationsStatus = 'available';
         observations = audit.details.observations.map(observation => ({
@@ -80,6 +84,7 @@ export async function getJobStatus(jobId: string): Promise<JobResponse> {
     filename: 'Видеозапись', created_at: '', error: raw.error,
     violations_count: violations.length, violations,
     observations, observations_status: observationsStatus, video_duration_sec: videoDuration,
+    rule_checks: ruleChecks, verification_summary: verificationSummary,
   };
 }
 

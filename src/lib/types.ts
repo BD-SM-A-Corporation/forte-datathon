@@ -41,6 +41,41 @@ export interface JobResponse {
   observations: ObservationResponse[];
   observations_status: 'available' | 'unavailable';
   video_duration_sec: number | null;
+  rule_checks: RuleCheck[];
+  verification_summary: VerificationSummary | null;
+}
+
+export interface FactAssessment {
+  status: 'confirmed' | 'contradicted' | 'unknown';
+  evidence_timestamps: number[];
+  explanation: string;
+}
+
+export interface RuleCheck {
+  rule_id: string;
+  rule_name: string;
+  source: RuleItem['source'];
+  start_sec: number;
+  end_sec: number;
+  context_start_sec?: number;
+  context_end_sec?: number;
+  status: 'potential_match' | 'contradicted' | 'insufficient_evidence' | 'not_checked' | 'unavailable';
+  facts: (FactAssessment & { id: string; label: string })[];
+  episode_link?: FactAssessment;
+  confidence?: number;
+  uncertainties?: string[];
+  reason?: string;
+  blocking_reasons?: string[];
+  sampled_timestamps?: number[];
+}
+
+export interface VerificationSummary {
+  enabled: boolean;
+  candidate_count: number;
+  checked_count: number;
+  not_checked_count: number;
+  unavailable_count: number;
+  insufficient_count: number;
 }
 
 export interface ObservationResponse {

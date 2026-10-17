@@ -12,6 +12,7 @@ import DropZone from "@/components/DropZone";
 import { StageProgress } from "@/components/StageProgress";
 import { VerdictBanner } from "@/components/VerdictBanner";
 import { Timeline } from "@/components/Timeline";
+import { RuleChecks } from "@/components/RuleChecks";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { ViolationCard } from "@/components/ViolationCard";
 import { EvidenceGallery } from "@/components/EvidenceGallery";
@@ -222,7 +223,8 @@ export default function CashDisciplineApp() {
                 <p className={styles.processingNote}>{labels.timeout}</p>
               </motion.div>}
               {currentStep === "result" && jobResult && <motion.div key="result" className={styles.resultStack} {...enter}>
-                <VerdictBanner assessment={jobResult.assessment} violationsCount={jobResult.violations_count} filename={jobResult.filename} onDownloadJson={handleDownloadJson} onReset={handleReset} />
+                <VerdictBanner assessment={jobResult.assessment} verificationSummary={jobResult.verification_summary} violationsCount={jobResult.violations_count} filename={jobResult.filename} onDownloadJson={handleDownloadJson} onReset={handleReset} />
+                <RuleChecks checks={jobResult.rule_checks} summary={jobResult.verification_summary} onSeek={handleSeek} />
                 <div className={styles.eventsHeading}><h3>{labels.events}</h3><span>{jobResult.violations.length}</span></div>
                 {jobResult.violations.length === 0 ? <div className={`card-corporate ${styles.noEvents}`}><ShieldCheck size={22} /><p>{labels.empty}</p></div> : jobResult.violations.map((violation, index) => <ViolationCard key={violation.id ?? index} violation={violation} index={index} isActive={activeViolationId === violation.id} onSeek={handleSeek} onSelect={() => { setActiveViolationId(violation.id ?? null); handleSeek(violation.timestamp_sec); }} />)}
               </motion.div>}

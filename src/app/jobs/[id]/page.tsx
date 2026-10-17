@@ -7,6 +7,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { VerdictBanner } from '@/components/VerdictBanner';
 import { Timeline } from '@/components/Timeline';
+import { RuleChecks } from '@/components/RuleChecks';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { ViolationCard } from '@/components/ViolationCard';
 import { EvidenceGallery } from '@/components/EvidenceGallery';
@@ -123,6 +124,7 @@ function JobDetailsInner() {
           {/* Verdict Banner */}
           <VerdictBanner
             assessment={job.assessment}
+            verificationSummary={job.verification_summary}
             violationsCount={job.violations_count}
             filename={job.filename}
             onDownloadJson={handleDownloadJson}
@@ -151,6 +153,8 @@ function JobDetailsInner() {
               activeViolationId={activeViolationId}
             />
           </div>
+
+          <RuleChecks checks={job.rule_checks} summary={job.verification_summary} onSeek={handleSeek} />
 
           {/* Evidence Gallery */}
           {job.violations.length > 0 && (
