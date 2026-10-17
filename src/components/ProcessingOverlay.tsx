@@ -1,108 +1,218 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ArrowPathIcon, CheckIcon } from "@heroicons/react/24/outline";
 
 interface ProcessingOverlayProps {
   jobId: string | null;
   elapsedMs: number;
+  lang?: "ru" | "kz" | "en";
 }
 
-const STAGES = [
-  { label: "Загрузка видеофайла...", pct: 15 },
-  { label: "Извлечение кадров (FPS: 5)...", pct: 30 },
-  { label: "Детекция объектов и поз...", pct: 50 },
-  { label: "Классификация событий...", pct: 68 },
-  { label: "Сопоставление с нормативной базой РК...", pct: 82 },
-  { label: "Формирование кадров-доказательств...", pct: 92 },
-  { label: "Финализация результата...", pct: 98 },
-];
+const STAGES = {
+  ru: [
+    { label: "Загрузка и парсинг медиа-контейнера...", pct: 15 },
+    { label: "Извлечение аудиодорожки и транскрибация речи...", pct: 35 },
+    { label: "Оптическое распознавание кадров (OCR дисклеймеров)...", pct: 55 },
+    { label: "Сверка соразмерности шрифта ГЭСВ и номинальной ставки...", pct: 75 },
+    { label: "Проверка номера лицензии АРРФР и языкового паритета...", pct: 90 },
+    { label: "Финализация юридического отчёта о комплаенсе...", pct: 98 },
+  ],
+  kz: [
+    { label: "Медиа-контейнерді жүктеу және талдау...", pct: 15 },
+    { label: "Аудиожолды шығару және дауысты мәтінге айналдыру...", pct: 35 },
+    { label: "Кадрларды оптикалық тану (OCR ескертулері)...", pct: 55 },
+    { label: "ЖТСМ мен номиналды мөлшерлеме қаріптерін салыстыру...", pct: 75 },
+    { label: "ҚҚРА лицензиясы мен тілдік паритетті тексеру...", pct: 90 },
+    { label: "Комплаенс бойынша қорытынды есепті қалыптастыру...", pct: 98 },
+  ],
+  en: [
+    { label: "Uploading & parsing media stream container...", pct: 15 },
+    { label: "Extracting audio track & speech-to-text recognition...", pct: 35 },
+    { label: "Executing optical character recognition (OCR on fine-print)...", pct: 55 },
+    { label: "Analyzing font proportionality between GESV & nominal rate...", pct: 75 },
+    { label: "Validating ARDFM license credentials & state language parity...", pct: 90 },
+    { label: "Finalizing legal compliance audit summary...", pct: 98 },
+  ],
+};
 
-export default function ProcessingOverlay({ jobId, elapsedMs }: ProcessingOverlayProps) {
+export default function ProcessingOverlay({
+  jobId,
+  elapsedMs,
+  lang = "ru",
+}: ProcessingOverlayProps) {
   const [stageIdx, setStageIdx] = useState(0);
+
+  const stages = STAGES[lang] || STAGES.ru;
 
   useEffect(() => {
     const id = setInterval(() => {
-      setStageIdx((i) => Math.min(i + 1, STAGES.length - 1));
+      setStageIdx((i) => Math.min(i + 1, stages.length - 1));
     }, 1800);
     return () => clearInterval(id);
-  }, []);
+  }, [stages.length]);
 
-  const stage = STAGES[stageIdx];
+  const stage = stages[stageIdx];
   const elapsed = (elapsedMs / 1000).toFixed(1);
 
   return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      justifyContent: "center", padding: "48px 24px", gap: 28, textAlign: "center"
-    }}>
-      {/* Animated ring */}
-      <div style={{ position: "relative", width: 80, height: 80 }}>
-        <svg width="80" height="80" viewBox="0 0 80 80" className="animate-spin-slow">
-          <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(164,16,52,0.15)" strokeWidth="6"/>
+    <div
+      className="card-corporate"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "48px 24px",
+        gap: 24,
+        textAlign: "center",
+        background: "var(--forte-surface)",
+      }}
+    >
+      {/* Clean Corporate Spinner */}
+      <div style={{ position: "relative", width: 72, height: 72 }}>
+        <svg
+          width="72"
+          height="72"
+          viewBox="0 0 72 72"
+          style={{ animation: "spin 1.2s linear infinite" }}
+        >
           <circle
-            cx="40" cy="40" r="34" fill="none"
-            stroke="url(#grad)" strokeWidth="6"
-            strokeLinecap="round"
-            strokeDasharray="213"
-            strokeDashoffset={213 - (213 * stage.pct) / 100}
-            style={{ transition: "stroke-dashoffset 1.5s ease" }}
+            cx="36"
+            cy="36"
+            r="30"
+            fill="none"
+            stroke="var(--forte-border)"
+            strokeWidth="5"
           />
-          <defs>
-            <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#a41034"/>
-              <stop offset="100%" stopColor="#e53e6b"/>
-            </linearGradient>
-          </defs>
+          <circle
+            cx="36"
+            cy="36"
+            r="30"
+            fill="none"
+            stroke="var(--forte-brand)"
+            strokeWidth="5"
+            strokeLinecap="round"
+            strokeDasharray="188"
+            strokeDashoffset="120"
+          />
         </svg>
-        <div style={{
-          position: "absolute", inset: 0, display: "flex",
-          alignItems: "center", justifyContent: "center",
-          fontSize: 14, fontWeight: 700, color: "#f87171",
-          fontFamily: "var(--font-geist-mono)"
-        }}>
+
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 13,
+            fontWeight: 700,
+            color: "var(--forte-brand)",
+            fontFamily: "monospace",
+          }}
+        >
           {stage.pct}%
         </div>
       </div>
 
-      {/* Stage label */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <p style={{ fontSize: 15, fontWeight: 600, color: "#f4f4f5" }}>
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+
+      {/* Stage Title */}
+      <div>
+        <p
+          style={{
+            fontSize: 15,
+            fontWeight: 600,
+            color: "var(--forte-text-primary)",
+            marginBottom: 6,
+          }}
+        >
           {stage.label}
         </p>
-        <div style={{ display: "flex", gap: 16, justifyContent: "center", color: "#71717a", fontSize: 12 }}>
-          {jobId && (
-            <span style={{ fontFamily: "var(--font-geist-mono)" }}>
-              job: <span style={{ color: "#a1a1aa" }}>{jobId}</span>
-            </span>
-          )}
-          <span style={{ fontFamily: "var(--font-geist-mono)" }}>
-            ⏱ {elapsed}s
-          </span>
-          <span style={{ color: "#a41034" }}>MAX 5:00</span>
-        </div>
+        <p style={{ fontSize: 12, color: "var(--forte-text-muted)" }}>
+          ID операции: <code style={{ color: "var(--forte-brand)" }}>{jobId}</code> · Прошло: {elapsed}с
+        </p>
       </div>
 
-      {/* Progress bar */}
-      <div className="progress-bar" style={{ width: "100%", maxWidth: 360 }}>
-        <div className="progress-fill" style={{ width: `${stage.pct}%` }} />
-      </div>
+      {/* Steps List */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          maxWidth: 440,
+          width: "100%",
+          textAlign: "left",
+        }}
+      >
+        {stages.map((st, i) => {
+          const isDone = i < stageIdx;
+          const isCurrent = i === stageIdx;
 
-      {/* Stage dots */}
-      <div style={{ display: "flex", gap: 6 }}>
-        {STAGES.map((_, i) => (
-          <div key={i} style={{
-            width: i <= stageIdx ? 8 : 6,
-            height: i <= stageIdx ? 8 : 6,
-            borderRadius: "50%",
-            background: i <= stageIdx ? "#a41034" : "rgba(255,255,255,0.12)",
-            transition: "all 0.3s"
-          }} />
-        ))}
+          return (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                fontSize: 12,
+                color: isDone
+                  ? "var(--pastel-lime-text)"
+                  : isCurrent
+                  ? "var(--forte-text-primary)"
+                  : "var(--forte-text-faint)",
+                fontWeight: isCurrent ? 600 : 400,
+              }}
+            >
+              <div
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  backgroundColor: isDone
+                    ? "var(--pastel-lime-bg)"
+                    : isCurrent
+                    ? "rgba(14, 133, 230, 0.12)"
+                    : "var(--forte-surface-2)",
+                  border: isDone
+                    ? "1px solid var(--pastel-lime-border)"
+                    : isCurrent
+                    ? "1px solid var(--forte-brand)"
+                    : "1px solid var(--forte-border)",
+                }}
+              >
+                {isDone ? (
+                  <CheckIcon style={{ width: 11, height: 11, color: "var(--pastel-lime)" }} />
+                ) : isCurrent ? (
+                  <ArrowPathIcon
+                    style={{
+                      width: 11,
+                      height: 11,
+                      color: "var(--forte-brand)",
+                      animation: "spin 1s linear infinite",
+                    }}
+                  />
+                ) : (
+                  <span style={{ fontSize: 9, color: "var(--forte-text-muted)" }}>{i + 1}</span>
+                )}
+              </div>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {st.label}
+              </span>
+            </div>
+          );
+        })}
       </div>
-
-      <p style={{ fontSize: 12, color: "#52525b", maxWidth: 280 }}>
-        Анализ выполняется локально. Видео не передаётся в облако.
-      </p>
     </div>
   );
 }

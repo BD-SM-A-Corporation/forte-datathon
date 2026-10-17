@@ -2,19 +2,65 @@
 
 import { useState } from "react";
 import type { AnalysisResult } from "@/types";
+import {
+  ClipboardDocumentIcon,
+  CheckIcon,
+  ArrowDownTrayIcon,
+  KeyIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  CodeBracketIcon,
+} from "@heroicons/react/24/outline";
 
 interface JsonInspectorProps {
   result: AnalysisResult | null;
   jobId: string | null;
   apiKey: string;
   onApiKeyChange: (key: string) => void;
+  lang?: "ru" | "kz" | "en";
 }
 
-export default function JsonInspector({ result, jobId, apiKey, onApiKeyChange }: JsonInspectorProps) {
+export default function JsonInspector({
+  result,
+  jobId,
+  apiKey,
+  onApiKeyChange,
+  lang = "ru",
+}: JsonInspectorProps) {
   const [copied, setCopied] = useState(false);
   const [showKey, setShowKey] = useState(false);
 
   const json = result ? JSON.stringify(result, null, 2) : null;
+
+  const t = {
+    ru: {
+      authTitle: "Аутентификация API шлюза (X-API-Key)",
+      keyPlaceholder: "Введите корпоративный API-ключ...",
+      keyHint: "Используется для взаимодействия с сервисом автоматического аудита",
+      copyBtn: "Копировать JSON",
+      copied: "Скопировано",
+      downloadBtn: "Скачать отчёт (.JSON)",
+      emptyHint: "Запустите проверку видеофайла для формирования нормативного JSON-отчёта.",
+    },
+    kz: {
+      authTitle: "API шлюзінің аутентификациясы (X-API-Key)",
+      keyPlaceholder: "Корпоративтік API кілтін енгізіңіз...",
+      keyHint: "Автоматтандырылған аудит қызметімен өзара әрекеттесу үшін қолданылады",
+      copyBtn: "JSON көшіру",
+      copied: "Көшірілді",
+      downloadBtn: "Есепті жүктеп алу (.JSON)",
+      emptyHint: "Нормативтік JSON есебін жасау үшін бейнефайлды тексеруді іске қосыңыз.",
+    },
+    en: {
+      authTitle: "API Gateway Authentication (X-API-Key)",
+      keyPlaceholder: "Enter corporate API key...",
+      keyHint: "Used to authenticate against automated compliance auditing endpoints",
+      copyBtn: "Copy JSON Payload",
+      copied: "Copied to clipboard",
+      downloadBtn: "Download Report (.JSON)",
+      emptyHint: "Execute a compliance audit run to generate the structured JSON audit payload.",
+    },
+  }[lang];
 
   const handleCopy = () => {
     if (!json) return;
@@ -30,7 +76,7 @@ export default function JsonInspector({ result, jobId, apiKey, onApiKeyChange }:
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `forte-analysis-${jobId ?? "result"}.json`;
+    a.download = `forte-compliance-report-${jobId ?? "export"}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -38,110 +84,158 @@ export default function JsonInspector({ result, jobId, apiKey, onApiKeyChange }:
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* API Key section */}
-      <div style={{
-        padding: "14px 16px", borderRadius: 10,
-        background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.07)"
-      }}>
-        <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "#71717a", marginBottom: 10 }}>
-          X-API-Key (для жюри)
-        </p>
-        <div style={{ display: "flex", gap: 8 }}>
+      <div
+        className="card-corporate"
+        style={{
+          padding: "16px",
+          background: "var(--forte-surface)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 12,
+            fontWeight: 600,
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+            color: "var(--forte-text-secondary)",
+            marginBottom: 10,
+          }}
+        >
+          <KeyIcon style={{ width: 15, height: 15, color: "var(--forte-brand)" }} />
+          {t.authTitle}
+        </div>
+
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <input
             type={showKey ? "text" : "password"}
             value={apiKey}
             onChange={(e) => onApiKeyChange(e.target.value)}
-            placeholder="Введите API ключ..."
+            placeholder={t.keyPlaceholder}
             style={{
-              flex: 1, background: "rgba(0,0,0,0.3)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: 6, padding: "8px 12px",
-              color: "#f4f4f5", fontSize: 13,
-              fontFamily: "var(--font-geist-mono)",
-              outline: "none"
+              flex: 1,
+              background: "var(--forte-surface-2)",
+              border: "1px solid var(--forte-border)",
+              borderRadius: 8,
+              padding: "9px 12px",
+              color: "var(--forte-text-primary)",
+              fontSize: 13,
+              fontFamily: "monospace",
+              outline: "none",
             }}
           />
           <button
-            className="btn-ghost"
-            style={{ padding: "8px 12px" }}
-            onClick={() => setShowKey((s) => !s)}
+            type="button"
+            className="btn-secondary"
+            onClick={() => setShowKey(!showKey)}
+            title={showKey ? "Скрыть" : "Показать"}
+            style={{ padding: "9px 12px" }}
           >
             {showKey ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><path d="M1 1l22 22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              <EyeSlashIcon style={{ width: 16, height: 16 }} />
             ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="1.5"/><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5"/></svg>
+              <EyeIcon style={{ width: 16, height: 16 }} />
             )}
           </button>
         </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-          <code style={{
-            flex: 1, fontSize: 11, color: "#71717a", wordBreak: "break-all",
-            fontFamily: "var(--font-geist-mono)"
-          }}>
-            POST https://your-service.example.kz/api/v1/analyze
-          </code>
-        </div>
+        <p
+          style={{
+            fontSize: 11,
+            color: "var(--forte-text-muted)",
+            marginTop: 6,
+          }}
+        >
+          {t.keyHint}
+        </p>
       </div>
 
-      {/* JSON Output */}
-      <div style={{
-        borderRadius: 10,
-        background: "#0a0a0c",
-        border: "1px solid rgba(255,255,255,0.07)",
-        overflow: "hidden"
-      }}>
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "10px 14px",
-          background: "rgba(255,255,255,0.03)",
-          borderBottom: "1px solid rgba(255,255,255,0.06)"
-        }}>
-          <div style={{ display: "flex", gap: 6 }}>
-            <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ff5f57" }} />
-            <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#febc2e" }} />
-            <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#28c840" }} />
-          </div>
-          <span style={{ fontSize: 11, color: "#52525b", fontFamily: "var(--font-geist-mono)" }}>
-            application/json · API Response
-          </span>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button className="btn-ghost" style={{ padding: "4px 10px", fontSize: 11 }} onClick={handleCopy} disabled={!json}>
-              {copied ? "✓ Скопировано" : "Копировать"}
-            </button>
-            <button className="btn-ghost" style={{ padding: "4px 10px", fontSize: 11 }} onClick={handleDownload} disabled={!json}>
-              ↓ JSON
-            </button>
-          </div>
-        </div>
-        <pre style={{
-          margin: 0, padding: "14px",
-          fontSize: 12, lineHeight: 1.6,
-          color: "#d4d4d8",
-          fontFamily: "var(--font-geist-mono)",
-          overflow: "auto",
-          maxHeight: 360,
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-all"
-        }}>
-          {json ?? <span style={{ color: "#52525b" }}>// Загрузите видео для получения результата...</span>}
-        </pre>
-      </div>
-
-      {/* Status indicators */}
-      {result && (
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <div className="badge-green">
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
-            status: {result.status}
-          </div>
-          <div className={result.verdict === "violation" ? "badge-red" : "badge-green"}>
-            verdict: {result.verdict}
-          </div>
-          {result.processing_time_ms && (
-            <div className="badge-amber">
-              ⏱ {(result.processing_time_ms / 1000).toFixed(1)}s
+      {/* JSON actions */}
+      {json ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                color: "var(--forte-text-secondary)",
+              }}
+            >
+              <CodeBracketIcon style={{ width: 15, height: 15 }} />
+              <span>Job Payload · {jobId}</span>
             </div>
-          )}
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ fontSize: 12, padding: "6px 12px" }}
+                onClick={handleCopy}
+              >
+                {copied ? (
+                  <>
+                    <CheckIcon style={{ width: 14, height: 14, color: "var(--pastel-lime)" }} />
+                    <span style={{ color: "var(--pastel-lime)" }}>{t.copied}</span>
+                  </>
+                ) : (
+                  <>
+                    <ClipboardDocumentIcon style={{ width: 14, height: 14 }} />
+                    <span>{t.copyBtn}</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                className="btn-primary"
+                style={{ fontSize: 12, padding: "6px 12px" }}
+                onClick={handleDownload}
+              >
+                <ArrowDownTrayIcon style={{ width: 14, height: 14 }} />
+                <span>{t.downloadBtn}</span>
+              </button>
+            </div>
+          </div>
+
+          <pre
+            className="card-corporate"
+            style={{
+              padding: 16,
+              background: "var(--forte-surface-2)",
+              fontSize: 12,
+              fontFamily: "monospace",
+              color: "var(--forte-text-primary)",
+              lineHeight: 1.55,
+              maxHeight: 460,
+              overflowY: "auto",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-all",
+            }}
+          >
+            {json}
+          </pre>
+        </div>
+      ) : (
+        <div
+          className="card-corporate"
+          style={{
+            padding: 32,
+            textAlign: "center",
+            color: "var(--forte-text-muted)",
+            fontSize: 13,
+          }}
+        >
+          {t.emptyHint}
         </div>
       )}
     </div>

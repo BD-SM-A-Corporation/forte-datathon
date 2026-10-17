@@ -1,90 +1,96 @@
 import type { DemoCase } from "@/types";
 
-// Placeholder base64 JPEG (grey square, ~1KB)
+// Clean lightweight preview placeholder
 const PLACEHOLDER_FRAME =
-  "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoH" +
-  "BwYIDAoMCwsKCwsNCxAQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQME" +
-  "BAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQU" +
-  "FBQUFBQUFBT/wAARCAAyADIDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAACAgJ" +
-  "/8QAIRAAAgICAQUBAAAAAAAAAAAABAUDBhESEyExQlH/xAAUAQEAAAAAAAAAAAAAAAAA" +
-  "AAAB/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A3TgAAAAAAAAAAAAA" +
-  "AAAAAAAAAAAAAAAAAAHjlXKj5O3Lp+YABEklFJJJJL2AAAAAAAAAAAAAAAAAAAAAAAAAAAAAf/Z";
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='180' viewBox='0 0 320 180'><rect width='320' height='180' fill='%231c1d22'/><rect x='20' y='140' width='160' height='12' rx='2' fill='%230e85e6' opacity='0.7'/><rect x='20' y='156' width='120' height='8' rx='2' fill='%2371717a' opacity='0.5'/><text x='160' y='95' fill='%23a1a1aa' font-family='sans-serif' font-size='12' text-anchor='middle'>OCR Frame Evidence</text></svg>";
 
 export const DEMO_CASES: DemoCase[] = [
   {
-    id: "demo-clean",
-    label: "Кейс 1: Чистая смена",
-    description: "Нет нарушений · 2:05",
+    id: "case-loan-violation",
+    label: "Кейс 1: Кредит наличными (ГЭСВ & Аудио)",
+    description: "2 нарушения · Критический риск · 0:30",
     result: {
-      job_id: "demo-001",
-      status: "done",
-      verdict: "no_violation",
-      violations: [],
-      processing_time_ms: 8200,
-    },
-  },
-  {
-    id: "demo-cashdesk",
-    label: "Кейс 2: Деньги без присмотра",
-    description: "1 нарушение · 1:43",
-    result: {
-      job_id: "demo-002",
+      job_id: "JOB-2026-FT-0841",
       status: "done",
       verdict: "violation",
+      processing_time_ms: 4210,
       violations: [
         {
-          type: "Оставление денежных средств без присмотра",
-          timecode_sec: 44.2,
+          type: "Несоответствие размера шрифта ГЭСВ (OCR)",
+          timecode_sec: 8.5,
           description:
-            "Кассир покинул рабочее место, оставив купюры на столе без укладки в кассовый ящик. На кадре видно: стопка купюр лежит на открытом кассовом лотке, дверца сейфа открыта, кассир стоит спиной. Согласно регламенту, наличность должна быть немедленно убрана в закрытый ящик при любом отходе от рабочего места.",
+            "Номинальная ставка «от 9.9%» указана крупным шрифтом по центру (высота символов 14.2% кадра), тогда как годовая эффективная ставка вознаграждения (ГЭСВ от 21.4%) набрана трудночитаемым шрифтом внизу экрана высотой 1.3% кадра. Согласно нормативам НБРК, размер шрифта ГЭСВ обязан быть визуально соразмерным и не менее половины от размера привлекающей ставки.",
           evidence_frames: [
-            { timestamp_sec: 44.2, image_base64: PLACEHOLDER_FRAME },
-            { timestamp_sec: 45.8, image_base64: PLACEHOLDER_FRAME },
+            { timestamp_sec: 8.5, image_base64: PLACEHOLDER_FRAME },
+            { timestamp_sec: 12.0, image_base64: PLACEHOLDER_FRAME },
           ],
-          regulation: "Постановление Правления НБРК № 201 «Об организации кассовой работы в банках»",
-          regulation_article: "п. 14, гл. 3",
-          regulation_url: "https://adilet.zan.kz/rus/docs/V1700015764",
+          regulation: "Правила предоставления банковских услуг и раскрытия информации (НБРК)",
+          regulation_article: "Статья 8, п. 3 (Требования к публикации ГЭСВ в рекламе)",
+          regulation_url: "https://adilet.zan.kz/rus/docs/V1900019683",
+        },
+        {
+          type: "Отсутствие предупреждения о переплате в аудио",
+          timecode_sec: 24.0,
+          description:
+            "В звуковой дорожке видеоролика не озвучено обязательное голосовое предупреждение о полной стоимости кредита и предельной ставке вознаграждения. По нормативам финансовой рекламы при аудиосопровождении обязателен дисклеймер хронометражем не менее 2 секунд.",
+          evidence_frames: [
+            { timestamp_sec: 24.0, image_base64: PLACEHOLDER_FRAME },
+          ],
+          regulation: "Закон РК «О рекламе» и регламенты финмониторинга",
+          regulation_article: "Статья 13 (Особенности рекламы финансовых и банковских услуг)",
+          regulation_url: "https://adilet.zan.kz/rus/docs/Z030000508_",
         },
       ],
-      processing_time_ms: 14300,
     },
   },
   {
-    id: "demo-inkass",
-    label: "Кейс 3: Нарушение инкассации",
-    description: "2 нарушения · 2:25",
+    id: "case-mortgage-parity",
+    label: "Кейс 2: Ипотечная программа (Лицензия & Паритет)",
+    description: "2 нарушения · Средний риск · 0:45",
     result: {
-      job_id: "demo-003",
+      job_id: "JOB-2026-FT-0914",
       status: "done",
       verdict: "violation",
+      processing_time_ms: 5120,
       violations: [
         {
-          type: "Нарушение регламента приёма инкассаторской сумки",
-          timecode_sec: 23.0,
+          type: "Отсутствие номера банковской лицензии АРРФР",
+          timecode_sec: 15.0,
           description:
-            "Пересчёт ценностей производится не в зоне прямой видимости видеокамеры. Инкассаторская сумка раскрыта до завершения оформления сопроводительных документов.",
+            "В финальном титре не указан официальный номер и дата выдачи лицензии Агентства Республики Казахстан по регулированию и развитию финансового рынка (АРРФР № 1.2.29/197/36).",
           evidence_frames: [
-            { timestamp_sec: 23.0, image_base64: PLACEHOLDER_FRAME },
+            { timestamp_sec: 15.0, image_base64: PLACEHOLDER_FRAME },
           ],
-          regulation: "Постановление Правления НБРК № 201 «Об организации кассовой работы в банках»",
-          regulation_article: "п. 22, гл. 4",
-          regulation_url: "https://adilet.zan.kz/rus/docs/V1700015764",
-        },
-        {
-          type: "Нахождение постороннего лица в кассовой зоне",
-          timecode_sec: 72.5,
-          description:
-            "В кадре виден силуэт человека, не являющегося кассиром или инкассатором, в зоне ограниченного доступа у кассового окна. Нахождение третьих лиц в кассовой кабине запрещено.",
-          evidence_frames: [
-            { timestamp_sec: 72.5, image_base64: PLACEHOLDER_FRAME },
-            { timestamp_sec: 74.1, image_base64: PLACEHOLDER_FRAME },
-          ],
-          regulation: "Закон РК «О банках и банковской деятельности» ст. 50",
-          regulation_article: "ст. 50, ч. 2",
+          regulation: "Закон РК «О банках и банковской деятельности в Республике Казахстан»",
+          regulation_article: "Статья 33 (Обязательные реквизиты и лицензирование в рекламе)",
           regulation_url: "https://adilet.zan.kz/rus/docs/Z950002444_",
         },
+        {
+          type: "Нарушение паритета государственного языка (ҚР Тіл туралы заңы)",
+          timecode_sec: 32.5,
+          description:
+            "Текстовая информация на государственном языке (казахском) расположена ниже русскоязычного блока и имеет уменьшенный на 35% кегль шрифта. По закону о рекламе в РК текстовые блоки на обоих языках должны иметь идентичный визуальный вес и читаемость.",
+          evidence_frames: [
+            { timestamp_sec: 32.5, image_base64: PLACEHOLDER_FRAME },
+            { timestamp_sec: 36.0, image_base64: PLACEHOLDER_FRAME },
+          ],
+          regulation: "Закон Республики Казахстан «О языках в Республике Казахстан»",
+          regulation_article: "Статья 21 (Язык реквизитов и визуальной информации)",
+          regulation_url: "https://adilet.zan.kz/rus/docs/Z970000151_",
+        },
       ],
-      processing_time_ms: 21600,
+    },
+  },
+  {
+    id: "case-deposit-compliant",
+    label: "Кейс 3: Депозит «Forte Премиум» (Полный комплаенс)",
+    description: "0 нарушений · 100% комплаенс · 0:25",
+    result: {
+      job_id: "JOB-2026-FT-1002",
+      status: "done",
+      verdict: "no_violation",
+      processing_time_ms: 3890,
+      violations: [],
     },
   },
 ];

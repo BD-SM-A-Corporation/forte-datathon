@@ -1,122 +1,297 @@
 "use client";
 
 import type { ChecklistItem } from "@/types";
-
-const BASE_CHECKLIST: Omit<ChecklistItem, "ok" | "timecode_sec">[] = [
-  { id: "cash-supervised", label: "Денежные средства под контролем кассира" },
-  { id: "desk-clear", label: "Кассовый стол свободен от посторонних предметов" },
-  { id: "no-strangers", label: "Посторонние лица отсутствуют в кассовой зоне" },
-  { id: "safe-closed", label: "Сейф / кассовый ящик закрыт при отходе" },
-  { id: "inkasso-protocol", label: "Соблюдён протокол инкассации" },
-  { id: "counting-visible", label: "Пересчёт наличности в поле зрения камеры" },
-  { id: "no-phone", label: "Мобильное устройство не используется при операции" },
-  { id: "id-checked", label: "Проверка документов клиента / инкассатора" },
-];
+import {
+  CheckCircleIcon,
+  XCircleIcon,
+  ClockIcon,
+  ShieldCheckIcon,
+} from "@heroicons/react/24/outline";
 
 interface ComplianceChecklistProps {
   violations: { type: string; timecode_sec: number }[];
   onSeek: (t: number) => void;
+  lang?: "ru" | "kz" | "en";
 }
 
-// Heuristic mapping: if violation type matches keyword → fail that item
-function buildChecklist(violations: { type: string; timecode_sec: number }[]): ChecklistItem[] {
+const CHECKLIST_DEFINITIONS = [
+  {
+    id: "gesv-scale",
+    labelRu: "Указание ГЭСВ в соразмерном масштабе с номинальной ставкой (OCR)",
+    labelKz: "ЖТСМ мөлшерін номиналды мөлшерлемемен бірдей масштабта көрсету (OCR)",
+    labelEn: "Annual Effective Rate (GESV) displayed at proportional font scale (OCR)",
+    keywords: ["гэсв", "шрифт", "размер", "масштаб"],
+  },
+  {
+    id: "ardfm-license",
+    labelRu: "Наличие актуального номера банковской лицензии АРРФР",
+    labelKz: "ҚҚРА банктік лицензиясының нақты нөмірі мен күнінің болуы",
+    labelEn: "Presence of valid ARDFM banking license number and date",
+    keywords: ["лицензи", "аррфр", "номер"],
+  },
+  {
+    id: "state-lang-parity",
+    labelRu: "Визуальный и смысловой паритет государственного языка (Қазақ тілі)",
+    labelKz: "Мемлекеттік тілдің визуалды және мағыналық теңгерімі (паритет)",
+    labelEn: "Visual and structural parity of the State language (Kazakh)",
+    keywords: ["паритет", "язык", "казах", "тіл"],
+  },
+  {
+    id: "audio-disclaimer",
+    labelRu: "Наличие обязательного аудио-дисклеймера в звуковой дорожке (хронометраж >2 сек)",
+    labelKz: "Дыбыстық жолда міндетті аудио-ескертудің болуы (>2 сек)",
+    labelEn: "Mandatory spoken voiceover disclaimer present in audio track (>2s)",
+    keywords: ["аудио", "озвуч", "дисклеймер", "голос"],
+  },
+  {
+    id: "rate-veracity",
+    labelRu: "Достоверность финансовых условий и отсутствие скрытых комиссий",
+    labelKz: "Қаржылық шарттардың шынайылығы және жасырын төлемдердің болмауы",
+    labelEn: "Veracity of advertised loan terms without undisclosed fees",
+    keywords: ["комисси", "переплат", "ставка"],
+  },
+  {
+    id: "font-contrast-timing",
+    labelRu: "Читаемость сносок: достаточный контраст и хронометраж показа",
+    labelKz: "Сілтемелердің оқылуы: фондық контраст және көрсетілу уақыты",
+    labelEn: "Fine-print legibility: contrast ratio and screen exposure duration",
+    keywords: ["контраст", "читаем", "хронометраж"],
+  },
+  {
+    id: "no-guarantee-risk",
+    labelRu: "Отсутствие недостоверных заверений о гарантированной доходности",
+    labelKz: "Кепілдендірілген кірістілік туралы жалған уәделердің болмауы",
+    labelEn: "Prohibition of false guarantees regarding return on investment",
+    keywords: ["доход", "гаранти"],
+  },
+];
+
+function buildChecklist(
+  violations: { type: string; timecode_sec: number }[],
+  lang: "ru" | "kz" | "en"
+): ChecklistItem[] {
   const types = violations.map((v) => v.type.toLowerCase());
-  return BASE_CHECKLIST.map((item) => {
+
+  return CHECKLIST_DEFINITIONS.map((def) => {
     let ok = true;
     let timecode: number | undefined;
-    if (item.id === "cash-supervised" && types.some((t) => t.includes("присмотр") || t.includes("оставл"))) {
+
+    const matchedViolation = violations.find((v) => {
+      const vt = v.type.toLowerCase();
+      return def.keywords.some((kw) => vt.includes(kw));
+    });
+
+    if (matchedViolation) {
       ok = false;
-      timecode = violations.find((v) => v.type.toLowerCase().includes("присмотр") || v.type.toLowerCase().includes("оставл"))?.timecode_sec;
+      timecode = matchedViolation.timecode_sec;
     }
-    if (item.id === "no-strangers" && types.some((t) => t.includes("посторон"))) {
-      ok = false;
-      timecode = violations.find((v) => v.type.toLowerCase().includes("посторон"))?.timecode_sec;
-    }
-    if (item.id === "inkasso-protocol" && types.some((t) => t.includes("инкасс"))) {
-      ok = false;
-      timecode = violations.find((v) => v.type.toLowerCase().includes("инкасс"))?.timecode_sec;
-    }
-    if (item.id === "no-phone" && types.some((t) => t.includes("телефон") || t.includes("устройств"))) {
-      ok = false;
-      timecode = violations.find((v) => v.type.toLowerCase().includes("телефон"))?.timecode_sec;
-    }
-    return { ...item, ok, timecode_sec: timecode };
+
+    const label =
+      lang === "kz" ? def.labelKz : lang === "en" ? def.labelEn : def.labelRu;
+
+    return {
+      id: def.id,
+      label,
+      ok,
+      timecode_sec: timecode,
+    };
   });
 }
 
-export default function ComplianceChecklist({ violations, onSeek }: ComplianceChecklistProps) {
-  const items = buildChecklist(violations);
+function formatTime(s: number): string {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+}
+
+export default function ComplianceChecklist({
+  violations,
+  onSeek,
+  lang = "ru",
+}: ComplianceChecklistProps) {
+  const items = buildChecklist(violations, lang);
   const passCount = items.filter((i) => i.ok).length;
+  const failCount = items.length - passCount;
+  const compliancePercent = Math.round((passCount / items.length) * 100);
+
+  const t = {
+    ru: {
+      passed: "Соответствует",
+      failed: "Нарушено",
+      score: "Индекс соответствия нормативам",
+      seek: "К моменту нарушения",
+    },
+    kz: {
+      passed: "Сәйкес келеді",
+      failed: "Бұзылған",
+      score: "Нормативтерге сәйкестік индексі",
+      seek: "Бұзушылық сәтіне өту",
+    },
+    en: {
+      passed: "Passed",
+      failed: "Violations",
+      score: "Regulatory Compliance Index",
+      seek: "Seek to moment",
+    },
+  }[lang];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {/* Header stats */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 4 }}>
-        <div style={{
-          flex: 1, padding: "10px 14px", borderRadius: 8,
-          background: "rgba(16,185,129,0.08)",
-          border: "1px solid rgba(16,185,129,0.2)",
-          textAlign: "center"
-        }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "#34d399" }}>{passCount}</div>
-          <div style={{ fontSize: 11, color: "#71717a" }}>Соответствует</div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* Top metrics */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+        {/* Score */}
+        <div
+          className="card-corporate"
+          style={{
+            padding: "12px 14px",
+            textAlign: "center",
+            background: "var(--forte-surface)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 800,
+              color: failCount === 0 ? "var(--pastel-lime)" : "var(--forte-brand)",
+            }}
+          >
+            {compliancePercent}%
+          </div>
+          <div style={{ fontSize: 11, color: "var(--forte-text-muted)", marginTop: 2 }}>
+            {t.score}
+          </div>
         </div>
-        <div style={{
-          flex: 1, padding: "10px 14px", borderRadius: 8,
-          background: "rgba(164,16,52,0.08)",
-          border: "1px solid rgba(164,16,52,0.2)",
-          textAlign: "center"
-        }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "#f87171" }}>{items.length - passCount}</div>
-          <div style={{ fontSize: 11, color: "#71717a" }}>Нарушений</div>
+
+        {/* Passed count */}
+        <div
+          className="card-corporate"
+          style={{
+            padding: "12px 14px",
+            textAlign: "center",
+            background: "var(--pastel-lime-bg)",
+            borderColor: "var(--pastel-lime-border)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 800,
+              color: "var(--pastel-lime-text)",
+            }}
+          >
+            {passCount}
+          </div>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: "var(--pastel-lime-text)",
+              marginTop: 2,
+            }}
+          >
+            {t.passed}
+          </div>
+        </div>
+
+        {/* Failed count */}
+        <div
+          className="card-corporate"
+          style={{
+            padding: "12px 14px",
+            textAlign: "center",
+            background: failCount > 0 ? "var(--pastel-red-bg)" : "var(--forte-surface-2)",
+            borderColor: failCount > 0 ? "var(--pastel-red-border)" : "var(--forte-border)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 800,
+              color: failCount > 0 ? "var(--pastel-red-text)" : "var(--forte-text-muted)",
+            }}
+          >
+            {failCount}
+          </div>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: failCount > 0 ? "var(--pastel-red-text)" : "var(--forte-text-muted)",
+              marginTop: 2,
+            }}
+          >
+            {t.failed}
+          </div>
         </div>
       </div>
 
-      {/* Items */}
-      {items.map((item) => (
-        <div key={item.id} className={item.ok ? "checklist-ok" : "checklist-fail"}>
-          <div style={{
-            flexShrink: 0, width: 20, height: 20,
-            borderRadius: "50%",
-            background: item.ok ? "rgba(16,185,129,0.2)" : "rgba(164,16,52,0.2)",
-            display: "flex", alignItems: "center", justifyContent: "center"
-          }}>
+      {/* Items List */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {items.map((item) => (
+          <div
+            key={item.id}
+            className="card-corporate"
+            style={{
+              padding: "12px 14px",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              background: item.ok ? "var(--forte-surface)" : "var(--pastel-red-bg)",
+              borderColor: item.ok ? "var(--forte-border)" : "var(--pastel-red-border)",
+            }}
+          >
             {item.ok ? (
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-                <path d="M5 13l4 4L19 7" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <CheckCircleIcon
+                style={{
+                  width: 20,
+                  height: 20,
+                  color: "var(--pastel-lime)",
+                  flexShrink: 0,
+                }}
+              />
             ) : (
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-                <path d="M18 6L6 18M6 6l12 12" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round"/>
-              </svg>
+              <XCircleIcon
+                style={{
+                  width: 20,
+                  height: 20,
+                  color: "var(--pastel-red)",
+                  flexShrink: 0,
+                }}
+              />
+            )}
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: item.ok
+                    ? "var(--forte-text-primary)"
+                    : "var(--pastel-red-text)",
+                  lineHeight: 1.45,
+                  display: "block",
+                }}
+              >
+                {item.label}
+              </span>
+            </div>
+
+            {/* Timecode jump if failed */}
+            {!item.ok && item.timecode_sec !== undefined && (
+              <button
+                type="button"
+                className="badge-red"
+                style={{ cursor: "pointer", flexShrink: 0 }}
+                onClick={() => onSeek(item.timecode_sec!)}
+                title={t.seek}
+              >
+                <ClockIcon style={{ width: 12, height: 12 }} />
+                {formatTime(item.timecode_sec)}
+              </button>
             )}
           </div>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 13, color: item.ok ? "#d4d4d8" : "#fca5a5", fontWeight: item.ok ? 400 : 500 }}>
-              {item.label}
-            </p>
-          </div>
-          {!item.ok && item.timecode_sec !== undefined && (
-            <button
-              onClick={() => onSeek(item.timecode_sec!)}
-              style={{
-                flexShrink: 0, fontSize: 11,
-                color: "#f87171", cursor: "pointer",
-                background: "rgba(164,16,52,0.15)",
-                border: "1px solid rgba(164,16,52,0.3)",
-                borderRadius: 4, padding: "2px 8px",
-                fontFamily: "var(--font-geist-mono)"
-              }}
-            >
-              {String(Math.floor(item.timecode_sec / 60)).padStart(2, "0")}:{String(Math.floor(item.timecode_sec % 60)).padStart(2, "0")}
-            </button>
-          )}
-        </div>
-      ))}
-
-      <p style={{ fontSize: 11, color: "#52525b", marginTop: 4 }}>
-        * Чеклист основан на результате анализа видео. Финальная оценка — за аудитором.
-      </p>
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,16 +1,39 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { ArrowUpTrayIcon, FilmIcon } from "@heroicons/react/24/outline";
 
 interface DropZoneProps {
   onFile: (file: File) => void;
   disabled?: boolean;
+  lang?: "ru" | "kz" | "en";
 }
 
-const ACCEPT = ".mov,video/quicktime,video/mp4";
+const ACCEPT = ".mov,video/quicktime,video/mp4,video/webm";
 
-export default function DropZone({ onFile, disabled }: DropZoneProps) {
+export default function DropZone({ onFile, disabled, lang = "ru" }: DropZoneProps) {
   const [dragOver, setDragOver] = useState(false);
+
+  const t = {
+    ru: {
+      dragTitle: "Перетащите рекламный видеоролик сюда",
+      orBrowse: "или выберите файл на компьютере",
+      formats: "Поддерживаются MP4, MOV, WEBM (до 150 МБ)",
+      buttonText: "Выбрать видеофайл",
+    },
+    kz: {
+      dragTitle: "Жарнамалық бейнероликті осында сүйреңіз",
+      orBrowse: "немесе компьютерден файлды таңдаңыз",
+      formats: "MP4, MOV, WEBM қолдау көрсетіледі (150 МБ дейін)",
+      buttonText: "Бейнефайлды таңдау",
+    },
+    en: {
+      dragTitle: "Drag and drop promotional video here",
+      orBrowse: "or browse from your computer",
+      formats: "Supports MP4, MOV, WEBM (up to 150 MB)",
+      buttonText: "Choose Video File",
+    },
+  }[lang];
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -31,18 +54,28 @@ export default function DropZone({ onFile, disabled }: DropZoneProps) {
 
   return (
     <label
-      className={`drop-zone${dragOver ? " drag-over" : ""}${disabled ? " opacity-50 pointer-events-none" : ""}`}
+      className="card-corporate"
       style={{
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: "40px 24px",
+        padding: "48px 24px",
         gap: 16,
         cursor: disabled ? "not-allowed" : "pointer",
-        minHeight: 200,
+        minHeight: 220,
+        border: dragOver
+          ? "2px dashed var(--forte-brand)"
+          : "2px dashed var(--forte-border)",
+        backgroundColor: dragOver
+          ? "var(--forte-surface-2)"
+          : "var(--forte-surface)",
+        transition: "all 0.15s ease",
       }}
-      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragOver(true);
+      }}
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
     >
@@ -54,43 +87,57 @@ export default function DropZone({ onFile, disabled }: DropZoneProps) {
         disabled={disabled}
       />
 
-      {/* Upload icon */}
-      <div style={{
-        width: 56, height: 56, borderRadius: 14,
-        background: dragOver ? "rgba(164,16,52,0.15)" : "rgba(255,255,255,0.05)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        border: "1px solid",
-        borderColor: dragOver ? "rgba(164,16,52,0.5)" : "rgba(255,255,255,0.1)",
-        transition: "all 0.3s"
-      }}>
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M12 16V8M12 8L9 11M12 8L15 11"
-            stroke={dragOver ? "#f87171" : "#71717a"}
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M3 15v2a4 4 0 004 4h10a4 4 0 004-4v-2"
-            stroke={dragOver ? "#f87171" : "#71717a"}
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-        </svg>
+      {/* Upload icon container */}
+      <div
+        style={{
+          width: 54,
+          height: 54,
+          borderRadius: "50%",
+          backgroundColor: dragOver
+            ? "rgba(14, 133, 230, 0.12)"
+            : "var(--forte-surface-2)",
+          border: "1px solid var(--forte-border)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: dragOver ? "var(--forte-brand)" : "var(--forte-text-secondary)",
+          transition: "all 0.15s ease",
+        }}
+      >
+        <ArrowUpTrayIcon style={{ width: 24, height: 24 }} />
       </div>
 
-      <div className="text-center">
-        <p style={{ fontSize: 15, fontWeight: 600, color: dragOver ? "#f87171" : "#d4d4d8", marginBottom: 6 }}>
-          {dragOver ? "Отпустите файл" : "Перетащите видео сюда"}
+      <div style={{ textAlign: "center" }}>
+        <p
+          style={{
+            fontSize: 15,
+            fontWeight: 600,
+            color: "var(--forte-text-primary)",
+            marginBottom: 4,
+          }}
+        >
+          {t.dragTitle}
         </p>
-        <p style={{ fontSize: 13, color: "#71717a" }}>
-          или <span style={{ color: "#f87171", textDecoration: "underline" }}>выберите файл</span>
-        </p>
-        <p style={{ fontSize: 12, color: "#52525b", marginTop: 8 }}>
-          Поддерживается .mov · до ~50 МБ
+        <p
+          style={{
+            fontSize: 13,
+            color: "var(--forte-text-muted)",
+          }}
+        >
+          {t.orBrowse}
         </p>
       </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <FilmIcon style={{ width: 14, height: 14, color: "var(--forte-text-muted)" }} />
+        <span style={{ fontSize: 11, color: "var(--forte-text-muted)" }}>
+          {t.formats}
+        </span>
+      </div>
+
+      <span className="btn-secondary" style={{ marginTop: 4 }}>
+        {t.buttonText}
+      </span>
     </label>
   );
 }
