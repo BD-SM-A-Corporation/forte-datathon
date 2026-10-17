@@ -1,26 +1,398 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --forte-red: #a41034;
+  --forte-red-dark: #7d0c27;
+  --forte-red-glow: rgba(164, 16, 52, 0.35);
+  --forte-amber: #f59e0b;
+  --forte-green: #10b981;
+  --forte-bg: #0c0c0e;
+  --forte-surface: #141417;
+  --forte-surface-2: #1c1c21;
+  --forte-surface-3: #242429;
+  --forte-border: rgba(255, 255, 255, 0.07);
+  --forte-border-hover: rgba(255, 255, 255, 0.14);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--forte-bg);
+  --color-foreground: #f4f4f5;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--forte-bg);
+  color: #f4f4f5;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--forte-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Glass card */
+.glass {
+  background: var(--forte-surface);
+  border: 1px solid var(--forte-border);
+  backdrop-filter: blur(12px);
+}
+
+.glass-2 {
+  background: var(--forte-surface-2);
+  border: 1px solid var(--forte-border);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #fff 0%, #a0a0b0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-red {
+  background: linear-gradient(135deg, #e53e6b 0%, #a41034 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow effects */
+.glow-red {
+  box-shadow: 0 0 24px var(--forte-red-glow), 0 0 48px rgba(164, 16, 52, 0.15);
+}
+
+.glow-green {
+  box-shadow: 0 0 24px rgba(16, 185, 129, 0.3), 0 0 48px rgba(16, 185, 129, 0.1);
+}
+
+/* Pulse animation for processing */
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.5s ease forwards;
+}
+
+.animate-pulse-red {
+  animation: pulse-red 1.5s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.05) 0%,
+    rgba(255,255,255,0.1) 50%,
+    rgba(255,255,255,0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite;
+}
+
+/* Violation marker on timeline */
+.timeline-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--forte-red);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.timeline-marker:hover {
+  width: 5px;
+  box-shadow: 0 0 8px var(--forte-red-glow);
+}
+
+/* Video player */
+.video-wrapper {
+  position: relative;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.video-wrapper video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Badge */
+.badge-red {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  background: rgba(164, 16, 52, 0.2);
+  border: 1px solid rgba(164, 16, 52, 0.4);
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #f87171;
+}
+
+.badge-green {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #34d399;
+}
+
+.badge-amber {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fbbf24;
+}
+
+/* Btn */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--forte-red);
+  color: #fff;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  outline: none;
+  white-space: nowrap;
+}
+.btn-primary:hover {
+  background: var(--forte-red-dark);
+  box-shadow: 0 4px 16px var(--forte-red-glow);
+  transform: translateY(-1px);
+}
+.btn-primary:active {
+  transform: translateY(0);
+}
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: transparent;
+  color: #a1a1aa;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid var(--forte-border);
+  outline: none;
+  white-space: nowrap;
+}
+.btn-ghost:hover {
+  background: var(--forte-surface-2);
+  color: #f4f4f5;
+  border-color: var(--forte-border-hover);
+}
+
+/* Checklist items */
+.checklist-ok {
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.checklist-fail {
+  background: rgba(164, 16, 52, 0.08);
+  border: 1px solid rgba(164, 16, 52, 0.22);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* Tab */
+.tab-active {
+  color: #f4f4f5;
+  border-bottom: 2px solid var(--forte-red);
+  padding-bottom: 8px;
+  font-weight: 600;
+}
+.tab-inactive {
+  color: #71717a;
+  border-bottom: 2px solid transparent;
+  padding-bottom: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.tab-inactive:hover {
+  color: #a1a1aa;
+}
+
+/* Responsive grid */
+.responsive-grid {
+  grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 768px) {
+  .responsive-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Drop zone */
+.drop-zone {
+  border: 2px dashed var(--forte-border);
+  border-radius: 12px;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+.drop-zone:hover,
+.drop-zone.drag-over {
+  border-color: var(--forte-red);
+  background: rgba(164, 16, 52, 0.06);
+}
+
+/* Progress bar */
+.progress-bar {
+  height: 4px;
+  background: var(--forte-surface-3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--forte-red), #e53e6b);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+/* Scanline overlay when processing */
+.scanline-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 12px;
+}
+.scanline-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(164, 16, 52, 0.8), transparent);
+  animation: scanline 2.5s linear infinite;
+}
+
+/* Evidence frame */
+.evidence-frame {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--forte-border);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.evidence-frame:hover {
+  border-color: var(--forte-red);
+  transform: scale(1.02);
+}
+
+/* Tooltip */
+.tooltip {
+  position: relative;
+}
+.tooltip-text {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1c1c21;
+  border: 1px solid var(--forte-border);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  color: #f4f4f5;
+  margin-bottom: 6px;
+  pointer-events: none;
+  z-index: 50;
+}
+.tooltip:hover .tooltip-text {
+  display: block;
 }
