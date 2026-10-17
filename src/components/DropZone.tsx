@@ -1,7 +1,10 @@
 "use client";
 
 import { useId, useState } from "react";
-import { ArrowUpTrayIcon, FilmIcon } from "@heroicons/react/24/outline";
+import { ArrowUpTrayIcon } from "@heroicons/react/24/outline";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { FileVideo2, ArrowUpRight } from "lucide-react";
+import styles from "./DropZone.module.css";
 
 interface DropZoneProps {
   onFile: (file: File) => void;
@@ -16,6 +19,7 @@ function isSupportedVideo(file: File) {
 }
 
 export default function DropZone({ onFile, disabled, lang = "ru" }: DropZoneProps) {
+  const reduced = useReducedMotion();
   const [dragOver, setDragOver] = useState(false);
   const [focusWithin, setFocusWithin] = useState(false);
   const [error, setError] = useState<"multiple" | "unsupported" | "size" | null>(null);
@@ -25,8 +29,10 @@ export default function DropZone({ onFile, disabled, lang = "ru" }: DropZoneProp
 
   const t = {
     ru: {
-      dragTitle: "Перетащите видео кассовой операции сюда",
-      orBrowse: "или выберите файл на компьютере",
+      dragTitle: "Всё начинается с видео",
+      drop: "Отпустите, чтобы добавить",
+      formatLabel: "Видеозапись",
+      orBrowse: "Перетащите запись сюда или выберите файл на компьютере",
       formats: "MOV · до 512 МБ",
       buttonText: "Выбрать видеофайл",
       size: "Выберите непустой файл размером до 512 МБ.",
@@ -34,7 +40,9 @@ export default function DropZone({ onFile, disabled, lang = "ru" }: DropZoneProp
       unsupported: "Выберите видео в формате MOV.",
     },
     kz: {
-      dragTitle: "Кассалық операция бейнесін осында сүйреңіз",
+      dragTitle: "Барлығы бейнеден басталады",
+      drop: "Қосу үшін жіберіңіз",
+      formatLabel: "Бейнежазба",
       orBrowse: "немесе компьютерден файлды таңдаңыз",
       formats: "MOV · 512 МБ дейін",
       buttonText: "Бейнефайлды таңдау",
@@ -43,8 +51,10 @@ export default function DropZone({ onFile, disabled, lang = "ru" }: DropZoneProp
       unsupported: "MOV форматындағы бейнені таңдаңыз.",
     },
     en: {
-      dragTitle: "Drag a video of a cash operation here",
-      orBrowse: "or browse from your computer",
+      dragTitle: "It starts with a recording",
+      drop: "Release to add your video",
+      formatLabel: "Video recording",
+      orBrowse: "Drop your recording here or choose a file from your computer",
       formats: "MOV · up to 512 MB",
       buttonText: "Choose video file",
       size: "Choose a non-empty file up to 512 MB.",
@@ -86,105 +96,38 @@ export default function DropZone({ onFile, disabled, lang = "ru" }: DropZoneProp
   };
 
   return (
-    <label
-      className="card-corporate"
+    <motion.label
+      className={styles.dropzone}
+      data-dragging={isDragging}
+      data-focused={focusWithin}
       aria-disabled={disabled || undefined}
+      animate={{ borderColor: isDragging ? "#0e85e6" : "#dbe5ef", backgroundColor: isDragging ? "#edf7ff" : "#ffffff" }}
       onFocus={() => setFocusWithin(true)}
       onBlur={() => setFocusWithin(false)}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "48px 24px",
-        gap: 16,
-        cursor: disabled ? "not-allowed" : "pointer",
-        minHeight: 220,
-        border: isDragging
-          ? "2px dashed var(--forte-brand)"
-          : "2px dashed var(--forte-border)",
-        backgroundColor: isDragging
-          ? "var(--forte-surface-2)"
-          : "var(--forte-surface)",
-        transition: "all 0.15s ease",
-        outline: focusWithin && !disabled ? "2px solid var(--forte-brand)" : undefined,
-        outlineOffset: 4,
-      }}
-      onDragOver={(e) => {
-        e.preventDefault();
-        if (disabled) return;
-        setDragOver(true);
-      }}
-      onDragLeave={() => setDragOver(false)}
+      onDragOver={(e) => { e.preventDefault(); if (!disabled) setDragOver(true); }}
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOver(false); }}
       onDrop={handleDrop}
     >
-      <input
-        type="file"
-        accept={ACCEPT}
-        className="sr-only"
-        aria-label={t.buttonText}
-        aria-describedby={error ? `${descriptionId} ${errorId}` : descriptionId}
-        aria-invalid={error ? true : undefined}
-        onChange={handleChange}
-        disabled={disabled}
-      />
-
-      {/* Upload icon container */}
-      <div
-        style={{
-          width: 54,
-          height: 54,
-          borderRadius: "50%",
-          backgroundColor: isDragging
-            ? "rgba(14, 133, 230, 0.12)"
-            : "var(--forte-surface-2)",
-          border: "1px solid var(--forte-border)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: isDragging ? "var(--forte-brand)" : "var(--forte-text-secondary)",
-          transition: "all 0.15s ease",
-        }}
-      >
-        <ArrowUpTrayIcon style={{ width: 24, height: 24 }} />
+      <input type="file" accept={ACCEPT} className="sr-only" aria-label={t.buttonText} aria-describedby={error ? `${descriptionId} ${errorId}` : descriptionId} aria-invalid={error ? true : undefined} onChange={handleChange} disabled={disabled} />
+      <span className={styles.cornerLabel}><span />{t.formatLabel}</span>
+      <span className={styles.cornerArrow}><ArrowUpRight size={17} /></span>
+      <div className={styles.artwork} aria-hidden="true">
+        <div className={styles.grid} />
+        <motion.div className={`${styles.fileCard} ${styles.backCard}`} animate={{ rotate: reduced ? -9 : isDragging ? -16 : -9, x: isDragging && !reduced ? -8 : 0 }} />
+        <motion.div className={styles.fileCard} animate={{ y: isDragging && !reduced ? -10 : 0, rotate: isDragging && !reduced ? 4 : 0 }} transition={{ type: "spring", stiffness: 260, damping: 20 }}>
+          <FileVideo2 size={34} strokeWidth={1.3} />
+          <span>MOV</span>
+          <div className={styles.cardLines}><i /><i /></div>
+        </motion.div>
+        <motion.span className={styles.uploadBubble} animate={{ scale: isDragging && !reduced ? 1.12 : 1, y: isDragging && !reduced ? -4 : 0 }}><ArrowUpTrayIcon width={17} height={17} /></motion.span>
       </div>
-
-      <div style={{ textAlign: "center" }}>
-        <p
-          style={{
-            fontSize: 15,
-            fontWeight: 600,
-            color: "var(--forte-text-primary)",
-            marginBottom: 4,
-          }}
-        >
-          {t.dragTitle}
-        </p>
-        <p
-          style={{
-            fontSize: 13,
-            color: "var(--forte-text-muted)",
-          }}
-        >
-          {t.orBrowse}
-        </p>
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <FilmIcon style={{ width: 14, height: 14, color: "var(--forte-text-muted)" }} />
-        <span id={descriptionId} style={{ fontSize: 11, color: "var(--forte-text-muted)", textAlign: "center" }}>
-          {t.formats}
-        </span>
-      </div>
-
-      <span className="btn-secondary" style={{ marginTop: 4 }}>
-        {t.buttonText}
-      </span>
-      {error && (
-        <p id={errorId} role="alert" style={{ color: "var(--pastel-red-text)", fontSize: 12, lineHeight: 1.5, textAlign: "center" }}>
-          {t[error]}
-        </p>
-      )}
-    </label>
+      <h3>{isDragging ? t.drop : t.dragTitle}</h3>
+      <p>{t.orBrowse}</p>
+      <span className={styles.chooseButton}>{t.buttonText}<ArrowUpRight size={15} /></span>
+      <span id={descriptionId} className={styles.formats}>{t.formats}</span>
+      <AnimatePresence initial={false}>
+        {error && <motion.p key={error} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} id={errorId} role="alert" className={styles.error}>{t[error]}</motion.p>}
+      </AnimatePresence>
+    </motion.label>
   );
 }

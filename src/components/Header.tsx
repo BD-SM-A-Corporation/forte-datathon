@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useId } from "react";
+import { motion } from "framer-motion";
+import { BookOpen } from "lucide-react";
 import { useLanguage } from "@/lib/use-language";
 import ForteLogo from "@/components/ForteLogo";
 import type { Language } from "@/lib/translations";
@@ -17,6 +20,7 @@ export function Header({
   onLanguageChange,
   onGoHome,
 }: HeaderProps) {
+  const languageId = useId();
   const [savedLanguage, setLanguage] = useLanguage();
   currentLang ??= savedLanguage;
   onLanguageChange ??= setLanguage;
@@ -45,14 +49,14 @@ export function Header({
             className={`${styles.brand} ${styles.brandButton}`}
             aria-label={`Forte — ${t.home}`}
           >
-            <ForteLogo />
+            <ForteLogo /><span className={styles.brandCaption}>compliance<span>VIDEO REVIEW</span></span>
           </button>
         ) : (
-          <Link href="/" className={styles.brand} aria-label={`Forte — ${t.home}`}><ForteLogo /></Link>
+          <Link href="/" className={styles.brand} aria-label={`Forte — ${t.home}`}><ForteLogo /><span className={styles.brandCaption}>compliance<span>VIDEO REVIEW</span></span></Link>
         )}
 
         <div className={styles.actions}>
-          <Link href="/rules" className={styles.rules}>{currentLang === "ru" ? "Правила и методика" : currentLang === "kz" ? "Ережелер" : "Rules"}</Link>
+          <Link href="/rules" className={styles.rules}><BookOpen size={14} />{currentLang === "ru" ? "Правила и методика" : currentLang === "kz" ? "Ережелер" : "Rules"}</Link>
           <div className={styles.languages} role="group" aria-label={t.language}>
             {(["kz", "ru", "en"] as Language[]).map((lng) => (
               <button
@@ -62,7 +66,8 @@ export function Header({
                 aria-pressed={currentLang === lng}
                 aria-label={lng === "kz" ? "Қазақша" : lng === "ru" ? "Русский" : "English"}
               >
-                {lng === "kz" ? "Қаз" : lng === "ru" ? "Рус" : "Eng"}
+                {currentLang === lng && <motion.span className={styles.languageActive} layoutId={`language-${languageId}`} transition={{ type: "spring", stiffness: 380, damping: 32 }} />}
+                <span className={styles.languageText}>{lng === "kz" ? "Қаз" : lng === "ru" ? "Рус" : "Eng"}</span>
               </button>
             ))}
           </div>

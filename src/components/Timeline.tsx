@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useId, useMemo, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { AlertCircle, Clock, MessageSquareText, X } from 'lucide-react';
 import { ObservationResponse, ViolationResponse } from '@/lib/types';
 import { formatTimestamp } from '@/lib/api';
@@ -19,6 +20,7 @@ interface TimelineProps {
 
 export function Timeline({ duration, currentTime, violations, observations, observationsStatus, onSeek, activeViolationId }: TimelineProps) {
   const panelId = useId();
+  const reduced = useReducedMotion();
   const [preview, setPreview] = useState<{ groupId: string } | { time: number } | null>(null);
   const events = useMemo(() => buildTimelineEvents(observations, violations), [observations, violations]);
   const totalDuration = duration > 0 ? duration : Math.max(1, ...events.map(event => event.end));
@@ -55,7 +57,11 @@ export function Timeline({ duration, currentTime, violations, observations, obse
           const selected = previewEvents.some(event => group.includes(event)) ||
             (activeViolationId != null && group.some(event => event.violationId === activeViolationId));
           return (
-            <button
+            <motion.button
+              initial={{ opacity: 0, scale: reduced ? 1 : 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={reduced ? undefined : { y: -3 }}
+              whileTap={reduced ? undefined : { scale: 0.95 }}
               key={first.id}
               type="button"
               aria-label={`${formatTimestamp(first.start)}: ${group.length} наблюдений. Показать описание модели`}
@@ -70,17 +76,17 @@ export function Timeline({ duration, currentTime, violations, observations, obse
             >
               {matched ? <AlertCircle className="h-3.5 w-3.5" /> : <MessageSquareText className="h-3.5 w-3.5" />}
               {group.length > 1 && <span>{group.length}</span>}
-            </button>
+            </motion.button>
           );
         })}
 
         <div className="absolute inset-x-0 bottom-1 h-4 rounded bg-slate-200">
           {events.map(event => (
-            <div key={event.id} className={`absolute inset-y-0 rounded ${event.rules.length ? 'bg-rose-500/40' : 'bg-sky-400/25'}`}
-              style={{ left: `${percent(event.start)}%`, width: `${Math.max(0, percent(event.end) - percent(event.start))}%` }} />
+            <motion.div initial={{ scaleX: reduced ? 1 : 0 }} animate={{ scaleX: 1 }} transition={{ duration: reduced ? 0 : 0.5 }} key={event.id} className={`absolute inset-y-0 rounded ${event.rules.length ? 'bg-rose-500/40' : 'bg-sky-400/25'}`}
+              style={{ transformOrigin: "left", left: `${percent(event.start)}%`, width: `${Math.max(0, percent(event.end) - percent(event.start))}%` }} />
           ))}
-          <div className="absolute inset-y-0 left-0 rounded bg-sky-500/15" style={{ width: `${percent(currentTime)}%` }} />
-          <div className="pointer-events-none absolute -inset-y-1 w-0.5 bg-sky-700" style={{ left: `min(${percent(currentTime)}%, calc(100% - 2px))` }} />
+          <motion.div className="absolute inset-y-0 left-0 rounded bg-sky-500/15" initial={false} animate={{ width: `${percent(currentTime)}%` }} transition={{ duration: reduced ? 0 : 0.15, ease: "linear" }} />
+          <motion.div className="pointer-events-none absolute -inset-y-1 w-0.5 bg-sky-700" initial={false} animate={{ left: `min(${percent(currentTime)}%, calc(100% - 2px))` }} transition={{ duration: reduced ? 0 : 0.15, ease: "linear" }} />
         </div>
         <input
           type="range" min={0} max={totalDuration} step={0.01}

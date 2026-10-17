@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { DocumentMagnifyingGlassIcon, FilmIcon } from "@heroicons/react/24/outline";
+import { FilmIcon } from "@heroicons/react/24/outline";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, Check, Clock3, FileVideo2, ScanLine, ShieldCheck, Sparkles } from "lucide-react";
+import { AnalysisVisual } from "@/components/AnalysisVisual";
+import { motionCopy } from "@/lib/motion-copy";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import DropZone from "@/components/DropZone";
@@ -23,6 +27,9 @@ type ScreenStep = "upload" | "processing" | "result";
 export default function CashDisciplineApp() {
   const [lang, setLang] = useLanguage();
   const t = translations[lang];
+  const design = motionCopy[lang];
+  const reduced = useReducedMotion();
+  const enter = { initial: { opacity: 0, y: reduced ? 0 : 12 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: reduced ? 0 : -8 } };
   const copy = workspaceTranslations[lang];
   const [currentStep, setCurrentStep] = useState<ScreenStep>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -93,7 +100,7 @@ export default function CashDisciplineApp() {
   const handleSeek = (seconds: number) => {
     setSeekTargetTime(seconds);
     setCurrentTime(seconds);
-    playerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    playerSectionRef.current?.scrollIntoView({ behavior: reduced ? 'instant' : 'smooth', block: 'nearest' });
   };
 
   const handleDownloadJson = () => {
@@ -134,56 +141,97 @@ export default function CashDisciplineApp() {
     en: { start: "Start analysis", ready: "Video ready for analysis", readyDescription: "Start the review to see events, model observations and evidence frames here.", processing: "Analyzing recording", complete: "Analysis complete", events: "Events for review", empty: "No rule matches found", timeout: "Analysis usually takes up to 5 minutes. The server does not report exact progress." },
   }[lang];
 
+  const workflowStep = currentStep === "result" ? 2 : currentStep === "processing" ? 1 : 0;
+  const statusLabel = jobStatus === "failed" ? copy.failed : currentStep === "result" ? labels.complete : currentStep === "processing" ? labels.processing : selectedFile ? copy.videoSelected : copy.waiting;
+
   return (
     <div className={styles.page}>
       <Header currentLang={lang} onLanguageChange={setLang} onGoHome={handleReset} />
       <main className={styles.main}>
-        <div className={styles.intro}>
-          <h1>{t.brandTagline}</h1>
-          <p>{copy.subtitle}</p>
-        </div>
+        <motion.div className={styles.intro} {...enter}>
+          <div className={styles.introCopy}>
+            <div className={styles.eyebrow}><span />FORTE COMPLIANCE <span className={styles.divider}>/</span> {design.workspace}</div>
+            <h1>{t.brandTagline}<span className={styles.titleDot}>.</span></h1>
+            <p>{copy.subtitle}</p>
+          </div>
+          <div className={styles.introAside}>
+            <span className={styles.localBadge}><ShieldCheck size={15} />{design.local}</span>
+            <span>{design.human}</span>
+          </div>
+        </motion.div>
+
+        <motion.ol className={styles.workflow} aria-label={design.workflow} {...enter} transition={{ delay: reduced ? 0 : 0.06 }}>
+          {[design.upload, design.analyze, design.review].map((label, index) => (
+            <li key={index} data-current={workflowStep === index} data-complete={workflowStep > index} aria-current={workflowStep === index ? "step" : undefined}>
+              {workflowStep === index && <motion.span className={styles.workflowActive} layoutId="workflow-active" transition={{ type: "spring", stiffness: 340, damping: 34 }} />}
+              <span className={styles.workflowNumber}>{workflowStep > index ? <Check size={13} /> : `0${index + 1}`}</span>
+              <span>{label}</span>
+              {index < 2 && <ArrowRight size={14} className={styles.workflowArrow} />}
+            </li>
+          ))}
+        </motion.ol>
+
         <div className={styles.workspace}>
-          <section className={styles.column} aria-labelledby="upload-title" ref={playerSectionRef}>
+          <motion.section className={styles.column} aria-labelledby="upload-title" ref={playerSectionRef} {...enter} transition={{ delay: reduced ? 0 : 0.12 }}>
             <div className={styles.sectionHeading}>
-              <div className={styles.headingLabel}><span className={styles.step}>1</span><h2 id="upload-title">{copy.uploadTitle}</h2></div>
+              <div className={styles.headingLabel}><FileVideo2 size={17} /><h2 id="upload-title">{copy.uploadTitle}</h2></div>
               <span className={styles.hint}>{copy.singleVideo}</span>
             </div>
-            {videoObjectUrl ? <>
-              <div className={styles.fileBar}>
-                <FilmIcon width={16} height={16} aria-hidden="true" />
-                <span title={selectedFile?.name}>{selectedFile?.name}</span>
-                <button className="btn-secondary" onClick={handleReset}>{copy.replaceVideo}</button>
-              </div>
-              <VideoPlayer key={videoObjectUrl} videoUrl={videoObjectUrl} violations={jobResult?.violations ?? []} currentTime={currentTime} onTimeUpdate={setCurrentTime} onDurationChange={setDuration} seekTime={seekTargetTime} onSeekComplete={() => setSeekTargetTime(null)} lang={lang} />
-            </> : <DropZone onFile={selectVideo} lang={lang} />}
-            {jobResult && <>
-              <Timeline key={jobResult.job_id} duration={jobResult.video_duration_sec ?? duration} currentTime={currentTime} violations={jobResult.violations} observations={jobResult.observations} observationsStatus={jobResult.observations_status} onSeek={handleSeek} activeViolationId={activeViolationId} />
-              {jobResult.violations.length > 0 && <EvidenceGallery violations={jobResult.violations} jobId={jobResult.job_id} />}
-            </>}
-          </section>
-          <section className={styles.column} aria-labelledby="analysis-title">
+            <AnimatePresence mode="wait" initial={false}>
+              {videoObjectUrl ? <motion.div key={videoObjectUrl} className={styles.videoPanel} {...enter}>
+                <div className={styles.fileBar}>
+                  <span className={styles.fileIcon}><FilmIcon width={18} height={18} aria-hidden="true" /></span>
+                  <span title={selectedFile?.name}>{selectedFile?.name}<small>{selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(1)} MB` : ""} · MOV</small></span>
+                  <button className="btn-secondary" onClick={handleReset}>{copy.replaceVideo}</button>
+                </div>
+                <VideoPlayer videoUrl={videoObjectUrl} violations={jobResult?.violations ?? []} currentTime={currentTime} onTimeUpdate={setCurrentTime} onDurationChange={setDuration} seekTime={seekTargetTime} onSeekComplete={() => setSeekTargetTime(null)} lang={lang} />
+              </motion.div> : <motion.div key="dropzone" {...enter}><DropZone onFile={selectVideo} lang={lang} /></motion.div>}
+            </AnimatePresence>
+            <AnimatePresence>
+              {jobResult && <motion.div className={styles.resultStack} key={jobResult.job_id} {...enter}>
+                <div className={styles.metrics}>
+                  <div><span>{design.events}</span><strong>{jobResult.violations.length.toString().padStart(2, "0")}</strong></div>
+                  <div><span>{design.observations}</span><strong>{jobResult.observations_status === "available" ? jobResult.observations.length.toString().padStart(2, "0") : "—"}</strong></div>
+                  <div><span>{design.duration}</span><strong>{jobResult.video_duration_sec != null || duration > 0 ? `${Math.floor((jobResult.video_duration_sec ?? duration) / 60)}:${Math.floor((jobResult.video_duration_sec ?? duration) % 60).toString().padStart(2, "0")}` : "—"}</strong></div>
+                </div>
+                <Timeline duration={jobResult.video_duration_sec ?? duration} currentTime={currentTime} violations={jobResult.violations} observations={jobResult.observations} observationsStatus={jobResult.observations_status} onSeek={handleSeek} activeViolationId={activeViolationId} />
+                {jobResult.violations.length > 0 && <EvidenceGallery violations={jobResult.violations} jobId={jobResult.job_id} />}
+              </motion.div>}
+            </AnimatePresence>
+            {!jobResult && <p className={styles.videoNote}><ShieldCheck size={14} />{design.videoNote}</p>}
+          </motion.section>
+
+          <motion.section className={styles.column} aria-labelledby="analysis-title" {...enter} transition={{ delay: reduced ? 0 : 0.18 }}>
             <div className={styles.sectionHeading}>
-              <div className={styles.headingLabel}><span className={styles.step}>2</span><h2 id="analysis-title">{copy.analysisTitle}</h2></div>
-              <span className={styles.hint} role="status">{jobStatus === "failed" ? copy.failed : currentStep === "result" ? labels.complete : currentStep === "processing" ? labels.processing : selectedFile ? copy.videoSelected : copy.waiting}</span>
+              <div className={styles.headingLabel}><ScanLine size={17} /><h2 id="analysis-title">{copy.analysisTitle}</h2></div>
+              <span className={styles.status} data-state={jobStatus} role="status"><i />{statusLabel}</span>
             </div>
-            {currentStep === "upload" && <div className={`card-corporate ${styles.emptyState}`}>
-              <div className={styles.emptyIcon}><DocumentMagnifyingGlassIcon width={32} height={32} /></div>
-              <h3>{selectedFile ? labels.ready : copy.emptyTitle}</h3>
-              <p>{selectedFile ? labels.readyDescription : copy.emptyDescription}</p>
-              {selectedFile && <button className="btn-primary" onClick={() => void handleStartAnalysis(selectedFile)}>{labels.start}</button>}
-            </div>}
-            {currentStep === "processing" && <div className="card-corporate p-5 space-y-4">
-              <h3 className="font-semibold">{jobStatus === "failed" ? copy.failedTitle : labels.processing}</h3>
-              <StageProgress progress={progress} status={jobStatus} error={errorMessage} onRetry={handleReset} />
-              <p className="text-sm text-zinc-600">{labels.timeout}</p>
-            </div>}
-            {currentStep === "result" && jobResult && <>
-              <VerdictBanner assessment={jobResult.assessment} violationsCount={jobResult.violations_count} filename={jobResult.filename} onDownloadJson={handleDownloadJson} onReset={handleReset} />
-              <h3 className="font-semibold">{labels.events} · {jobResult.violations.length}</h3>
-              {jobResult.violations.length === 0 ? <div className="card-corporate p-5 text-sm">{labels.empty}</div> : jobResult.violations.map((violation, index) => <ViolationCard key={violation.id ?? index} violation={violation} index={index} isActive={activeViolationId === violation.id} onSeek={handleSeek} onSelect={() => { setActiveViolationId(violation.id ?? null); handleSeek(violation.timestamp_sec); }} />)}
-            </>}
-          </section>
+            <AnimatePresence mode="wait" initial={false}>
+              {currentStep === "upload" && <motion.div key={selectedFile ? "ready" : "empty"} className={styles.emptyState} {...enter}>
+                <div className={styles.panelEyebrow}><Sparkles size={13} />{design.assistant}</div>
+                <AnalysisVisual ready={!!selectedFile} lang={lang} />
+                <h3>{selectedFile ? labels.ready : design.emptyTitle}</h3>
+                <p>{selectedFile ? labels.readyDescription : copy.emptyDescription}</p>
+                {selectedFile ? <motion.button className={`btn-primary ${styles.startButton}`} whileHover={reduced ? undefined : { y: -2 }} whileTap={reduced ? undefined : { scale: 0.98 }} onClick={() => void handleStartAnalysis(selectedFile)}>{labels.start}<ArrowRight size={17} /></motion.button> : <span className={styles.waitingHint}><Clock3 size={13} />{copy.waiting}</span>}
+              </motion.div>}
+              {currentStep === "processing" && <motion.div key="processing" className={styles.processingPanel} {...enter}>
+                <div className={styles.panelEyebrow}><ScanLine size={13} />{design.assistant}</div>
+                {jobStatus !== "failed" && <AnalysisVisual active lang={lang} />}
+                <h3>{jobStatus === "failed" ? copy.failedTitle : labels.processing}</h3>
+                <StageProgress progress={progress} status={jobStatus} error={errorMessage} onRetry={handleReset} lang={lang} />
+                <p className={styles.processingNote}>{labels.timeout}</p>
+              </motion.div>}
+              {currentStep === "result" && jobResult && <motion.div key="result" className={styles.resultStack} {...enter}>
+                <VerdictBanner assessment={jobResult.assessment} violationsCount={jobResult.violations_count} filename={jobResult.filename} onDownloadJson={handleDownloadJson} onReset={handleReset} />
+                <div className={styles.eventsHeading}><h3>{labels.events}</h3><span>{jobResult.violations.length}</span></div>
+                {jobResult.violations.length === 0 ? <div className={`card-corporate ${styles.noEvents}`}><ShieldCheck size={22} /><p>{labels.empty}</p></div> : jobResult.violations.map((violation, index) => <ViolationCard key={violation.id ?? index} violation={violation} index={index} isActive={activeViolationId === violation.id} onSeek={handleSeek} onSelect={() => { setActiveViolationId(violation.id ?? null); handleSeek(violation.timestamp_sec); }} />)}
+              </motion.div>}
+            </AnimatePresence>
+          </motion.section>
         </div>
+        {currentStep === "upload" && <motion.div className={styles.guide} {...enter} transition={{ delay: reduced ? 0 : 0.24 }}>
+          {[{ icon: FileVideo2, title: design.guideUpload, text: design.guideUploadText }, { icon: ScanLine, title: design.guideAnalyze, text: design.guideAnalyzeText }, { icon: ShieldCheck, title: design.guideReview, text: design.guideReviewText }].map(({ icon: Icon, title, text }, index) => <div key={title}><span className={styles.guideNumber}>0{index + 1}</span><Icon size={18} /><h3>{title}</h3><p>{text}</p></div>)}
+        </motion.div>}
       </main>
       <Footer />
     </div>

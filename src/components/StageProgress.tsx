@@ -1,17 +1,35 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Clock, Loader2, AlertCircle } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { Clock, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
+import type { Language } from '@/lib/translations';
+import styles from './StageProgress.module.css';
 
-export function StageProgress({ status, error, onRetry }: { progress: number; status: 'pending' | 'processing' | 'completed' | 'failed'; error?: string | null; onRetry?: () => void }) {
+export function StageProgress({ status, error, onRetry, lang = 'ru' }: { progress: number; status: 'pending' | 'processing' | 'completed' | 'failed'; error?: string | null; onRetry?: () => void; lang?: Language }) {
   const [elapsed, setElapsed] = useState(0);
+  const reduced = useReducedMotion();
   useEffect(() => {
-    if (status === 'completed' || status === 'failed') return;
-    const timer = setInterval(() => setElapsed(value => value + 1), 1000);
+    if (status !== 'processing') return;
+    const started = Date.now();
+    const timer = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
     return () => clearInterval(timer);
   }, [status]);
-  return <div aria-live="polite" className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
-    <div className="flex justify-between text-xs text-slate-600"><span className="flex items-center gap-2"><Clock size={14} />{Math.floor(elapsed / 60).toString().padStart(2, '0')}:{(elapsed % 60).toString().padStart(2, '0')}</span><span>Лимит ожидания: 5 минут</span></div>
-    {status === 'failed' ? <div role="alert" className="space-y-3"><p className="flex gap-2 text-sm text-red-700"><AlertCircle size={18} />{error || 'Анализ не завершён. Вердикт недоступен.'}</p>{onRetry && <button onClick={onRetry} className="rounded-lg bg-sky-100 px-4 py-2 text-sm">Вернуться к загрузке</button>}</div> : <p className="flex items-center gap-2 text-sm"><Loader2 className="animate-spin text-sky-600" size={18} />{status === 'completed' ? 'Анализ завершён' : 'Ожидаем результат локального анализа'}</p>}
+  const t = {
+    ru: { limit: 'Лимит: 5 минут', failed: 'Анализ не завершён. Результат недоступен.', retry: 'Вернуться к загрузке', complete: 'Анализ завершён', waiting: 'Ожидаем результат анализа', progress: 'Обработка записи' },
+    kz: { limit: 'Шектеу: 5 минут', failed: 'Талдау аяқталмады. Нәтиже қолжетімсіз.', retry: 'Жүктеуге оралу', complete: 'Талдау аяқталды', waiting: 'Талдау нәтижесін күтеміз', progress: 'Бейнені өңдеу' },
+    en: { limit: 'Limit: 5 minutes', failed: 'Analysis did not complete. Result unavailable.', retry: 'Back to upload', complete: 'Analysis complete', waiting: 'Waiting for analysis results', progress: 'Processing recording' },
+  }[lang];
+  const running = status === 'processing';
+  return <div className={styles.panel}>
+    <div className={styles.timing}><span><Clock size={12} /><span role="timer" aria-live="off">{Math.floor(elapsed / 60).toString().padStart(2, '0')}:{(elapsed % 60).toString().padStart(2, '0')}</span></span><span>{t.limit}</span></div>
+    <AnimatePresence mode="wait" initial={false}>
+      {status === 'failed' ? <motion.div key="failed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={styles.error} role="alert"><p><AlertCircle size={18} />{error || t.failed}</p>{onRetry && <button onClick={onRetry} className="btn-secondary"><ArrowLeft size={14} />{t.retry}</button>}</motion.div> : <motion.div key="status" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <div className={styles.track} role="progressbar" aria-label={t.progress} aria-valuenow={status === 'completed' ? 100 : undefined}>
+          <motion.span initial={false} animate={running && !reduced ? { x: ['-100%', '340%'] } : { x: 0 }} transition={running && !reduced ? { duration: 2.2, repeat: Infinity, ease: 'easeInOut' } : { duration: 0 }} style={{ width: status === 'completed' || reduced ? '100%' : '30%', opacity: reduced && running ? 0.5 : 1 }} />
+        </div>
+        <p className={styles.status} role="status">{status === 'completed' && <CheckCircle2 size={14} />}{status === 'completed' ? t.complete : t.waiting}</p>
+      </motion.div>}
+    </AnimatePresence>
   </div>;
 }
