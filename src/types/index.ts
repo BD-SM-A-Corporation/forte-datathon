@@ -11,8 +11,9 @@ export interface Violation {
   type: string;
   timecode_sec: number;
   description: string;
+  rationale?: string;
   evidence_frames: EvidenceFrame[];
-  // Normative reference – returned by our backend or enriched on frontend
+  // A source must be provided and checked; the UI never invents a legal reference.
   regulation?: string;
   regulation_article?: string;
   regulation_url?: string;
@@ -31,12 +32,4 @@ export interface ChecklistItem {
   label: string;
   ok: boolean;
   timecode_sec?: number;
-}
-
-// Demo preset
-export interface DemoCase {
-  id: string;
-  label: string;
-  description: string;
-  result: AnalysisResult;
 }

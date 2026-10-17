@@ -1,296 +1,95 @@
-"use client";
+﻿"use client";
 
-import type { ChecklistItem } from "@/types";
-import {
-  CheckCircleIcon,
-  XCircleIcon,
-  ClockIcon,
-  ShieldCheckIcon,
-} from "@heroicons/react/24/outline";
+import type { Violation } from "@/types";
+import { CheckCircleIcon, InformationCircleIcon, ClockIcon } from "@heroicons/react/24/outline";
 
 interface ComplianceChecklistProps {
-  violations: { type: string; timecode_sec: number }[];
-  onSeek: (t: number) => void;
+  violations: Violation[];
+  onSeek?: (t: number) => void;
   lang?: "ru" | "kz" | "en";
 }
 
-const CHECKLIST_DEFINITIONS = [
-  {
-    id: "gesv-scale",
-    labelRu: "Указание ГЭСВ в соразмерном масштабе с номинальной ставкой (OCR)",
-    labelKz: "ЖТСМ мөлшерін номиналды мөлшерлемемен бірдей масштабта көрсету (OCR)",
-    labelEn: "Annual Effective Rate (GESV) displayed at proportional font scale (OCR)",
-    keywords: ["гэсв", "шрифт", "размер", "масштаб"],
-  },
-  {
-    id: "ardfm-license",
-    labelRu: "Наличие актуального номера банковской лицензии АРРФР",
-    labelKz: "ҚҚРА банктік лицензиясының нақты нөмірі мен күнінің болуы",
-    labelEn: "Presence of valid ARDFM banking license number and date",
-    keywords: ["лицензи", "аррфр", "номер"],
-  },
-  {
-    id: "state-lang-parity",
-    labelRu: "Визуальный и смысловой паритет государственного языка (Қазақ тілі)",
-    labelKz: "Мемлекеттік тілдің визуалды және мағыналық теңгерімі (паритет)",
-    labelEn: "Visual and structural parity of the State language (Kazakh)",
-    keywords: ["паритет", "язык", "казах", "тіл"],
-  },
-  {
-    id: "audio-disclaimer",
-    labelRu: "Наличие обязательного аудио-дисклеймера в звуковой дорожке (хронометраж >2 сек)",
-    labelKz: "Дыбыстық жолда міндетті аудио-ескертудің болуы (>2 сек)",
-    labelEn: "Mandatory spoken voiceover disclaimer present in audio track (>2s)",
-    keywords: ["аудио", "озвуч", "дисклеймер", "голос"],
-  },
-  {
-    id: "rate-veracity",
-    labelRu: "Достоверность финансовых условий и отсутствие скрытых комиссий",
-    labelKz: "Қаржылық шарттардың шынайылығы және жасырын төлемдердің болмауы",
-    labelEn: "Veracity of advertised loan terms without undisclosed fees",
-    keywords: ["комисси", "переплат", "ставка"],
-  },
-  {
-    id: "font-contrast-timing",
-    labelRu: "Читаемость сносок: достаточный контраст и хронометраж показа",
-    labelKz: "Сілтемелердің оқылуы: фондық контраст және көрсетілу уақыты",
-    labelEn: "Fine-print legibility: contrast ratio and screen exposure duration",
-    keywords: ["контраст", "читаем", "хронометраж"],
-  },
-  {
-    id: "no-guarantee-risk",
-    labelRu: "Отсутствие недостоверных заверений о гарантированной доходности",
-    labelKz: "Кепілдендірілген кірістілік туралы жалған уәделердің болмауы",
-    labelEn: "Prohibition of false guarantees regarding return on investment",
-    keywords: ["доход", "гаранти"],
-  },
-];
-
-function buildChecklist(
-  violations: { type: string; timecode_sec: number }[],
-  lang: "ru" | "kz" | "en"
-): ChecklistItem[] {
-  const types = violations.map((v) => v.type.toLowerCase());
-
-  return CHECKLIST_DEFINITIONS.map((def) => {
-    let ok = true;
-    let timecode: number | undefined;
-
-    const matchedViolation = violations.find((v) => {
-      const vt = v.type.toLowerCase();
-      return def.keywords.some((kw) => vt.includes(kw));
-    });
-
-    if (matchedViolation) {
-      ok = false;
-      timecode = matchedViolation.timecode_sec;
-    }
-
-    const label =
-      lang === "kz" ? def.labelKz : lang === "en" ? def.labelEn : def.labelRu;
-
-    return {
-      id: def.id,
-      label,
-      ok,
-      timecode_sec: timecode,
-    };
-  });
+function formatTime(seconds: number) {
+  return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 }
 
-function formatTime(s: number): string {
-  const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60);
-  return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
-}
-
-export default function ComplianceChecklist({
-  violations,
-  onSeek,
-  lang = "ru",
-}: ComplianceChecklistProps) {
-  const items = buildChecklist(violations, lang);
-  const passCount = items.filter((i) => i.ok).length;
-  const failCount = items.length - passCount;
-  const compliancePercent = Math.round((passCount / items.length) * 100);
-
+export default function ComplianceChecklist({ violations, onSeek, lang = "ru" }: ComplianceChecklistProps) {
   const t = {
     ru: {
-      passed: "Соответствует",
-      failed: "Нарушено",
-      score: "Индекс соответствия нормативам",
-      seek: "К моменту нарушения",
+      note: "Проверяется только заполненность отчёта. Наличие полей не подтверждает достоверность наблюдения или соблюдение кассовых правил.",
+      empty: "События не отмечены. Полнота карточек событий не оценивается; это не заключение о соблюдении всех требований.",
+      events: "Карточек событий", filled: "Полей заполнено", missing: "Полей отсутствует",
+      type: "Тип видимого события", time: "Таймкод события", observation: "Описание видимого наблюдения", rationale: "Обоснование для просмотра",
+      frames: "От 1 до 3 кадров с таймкодами", source: "Предоставленный нормативный источник",
+      present: "Есть в карточках", needsData: "Нужно дополнить", seek: "Открыть событие в видео",
     },
     kz: {
-      passed: "Сәйкес келеді",
-      failed: "Бұзылған",
-      score: "Нормативтерге сәйкестік индексі",
-      seek: "Бұзушылық сәтіне өту",
+      note: "Тек есептің толтырылуы тексеріледі. Өрістердің болуы бақылаудың дұрыстығын немесе кассалық ережелердің сақталуын растамайды.",
+      empty: "Оқиғалар белгіленбеген. Оқиға карточкаларының толықтығы бағаланбайды; бұл барлық талаптардың сақталуы туралы қорытынды емес.",
+      events: "Оқиға карточкалары", filled: "Толтырылған өрістер", missing: "Жетіспейтін өрістер",
+      type: "Көрінетін оқиға түрі", time: "Оқиға таймкоды", observation: "Көрінетін бақылау сипаттамасы", rationale: "Қарауға арналған негіздеме",
+      frames: "Таймкодтары бар 1–3 кадр", source: "Берілген нормативтік дереккөз",
+      present: "Карточкаларда бар", needsData: "Толықтыру қажет", seek: "Оқиғаны бейнеден ашу",
     },
     en: {
-      passed: "Passed",
-      failed: "Violations",
-      score: "Regulatory Compliance Index",
-      seek: "Seek to moment",
+      note: "Only report completeness is checked. Populated fields do not confirm an observation's accuracy or compliance with cash-handling rules.",
+      empty: "No events are marked. Event-card completeness is not assessed; this is not a conclusion that all requirements were met.",
+      events: "Event cards", filled: "Populated fields", missing: "Missing fields",
+      type: "Visible event type", time: "Event timestamp", observation: "Visible observation description", rationale: "Reason for review",
+      frames: "1–3 frames with timestamps", source: "Supplied regulatory source",
+      present: "Present in cards", needsData: "Needs information", seek: "Open event in video",
     },
   }[lang];
 
+  const definitions: { id: string; label: string; check: (event: Violation) => boolean }[] = [
+    { id: "type", label: t.type, check: (event) => Boolean(event.type.trim()) },
+    { id: "time", label: t.time, check: (event) => Number.isFinite(event.timecode_sec) && event.timecode_sec >= 0 },
+    { id: "observation", label: t.observation, check: (event) => Boolean(event.description.trim()) },
+    { id: "rationale", label: t.rationale, check: (event) => Boolean(event.rationale?.trim()) },
+    { id: "frames", label: t.frames, check: (event) => event.evidence_frames.length >= 1 && event.evidence_frames.length <= 3 && event.evidence_frames.every((frame) => Boolean(frame.image_base64.trim()) && Number.isFinite(frame.timestamp_sec) && frame.timestamp_sec >= 0) },
+    { id: "source", label: t.source, check: (event) => Boolean(event.regulation?.trim() || event.regulation_article?.trim() || event.regulation_url?.trim()) },
+  ];
+  const checks = definitions.map((definition) => ({
+    ...definition,
+    present: violations.filter(definition.check).length,
+    firstIncomplete: violations.find((event) => !definition.check(event)),
+  }));
+  const filled = checks.reduce((total, check) => total + check.present, 0);
+  const total = violations.length * checks.length;
+
+  if (!violations.length) {
+    return <div className="card-corporate" style={{ padding: 20, fontSize: 13, lineHeight: 1.6, color: "var(--forte-text-secondary)" }}>{t.empty}</div>;
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      {/* Top metrics */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-        {/* Score */}
-        <div
-          className="card-corporate"
-          style={{
-            padding: "12px 14px",
-            textAlign: "center",
-            background: "var(--forte-surface)",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 22,
-              fontWeight: 800,
-              color: failCount === 0 ? "var(--pastel-lime)" : "var(--forte-brand)",
-            }}
-          >
-            {compliancePercent}%
-          </div>
-          <div style={{ fontSize: 11, color: "var(--forte-text-muted)", marginTop: 2 }}>
-            {t.score}
-          </div>
-        </div>
-
-        {/* Passed count */}
-        <div
-          className="card-corporate"
-          style={{
-            padding: "12px 14px",
-            textAlign: "center",
-            background: "var(--pastel-lime-bg)",
-            borderColor: "var(--pastel-lime-border)",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 22,
-              fontWeight: 800,
-              color: "var(--pastel-lime-text)",
-            }}
-          >
-            {passCount}
-          </div>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: "var(--pastel-lime-text)",
-              marginTop: 2,
-            }}
-          >
-            {t.passed}
-          </div>
-        </div>
-
-        {/* Failed count */}
-        <div
-          className="card-corporate"
-          style={{
-            padding: "12px 14px",
-            textAlign: "center",
-            background: failCount > 0 ? "var(--pastel-red-bg)" : "var(--forte-surface-2)",
-            borderColor: failCount > 0 ? "var(--pastel-red-border)" : "var(--forte-border)",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 22,
-              fontWeight: 800,
-              color: failCount > 0 ? "var(--pastel-red-text)" : "var(--forte-text-muted)",
-            }}
-          >
-            {failCount}
-          </div>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: failCount > 0 ? "var(--pastel-red-text)" : "var(--forte-text-muted)",
-              marginTop: 2,
-            }}
-          >
-            {t.failed}
-          </div>
-        </div>
-      </div>
-
-      {/* Items List */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className="card-corporate"
-            style={{
-              padding: "12px 14px",
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              background: item.ok ? "var(--forte-surface)" : "var(--pastel-red-bg)",
-              borderColor: item.ok ? "var(--forte-border)" : "var(--pastel-red-border)",
-            }}
-          >
-            {item.ok ? (
-              <CheckCircleIcon
-                style={{
-                  width: 20,
-                  height: 20,
-                  color: "var(--pastel-lime)",
-                  flexShrink: 0,
-                }}
-              />
-            ) : (
-              <XCircleIcon
-                style={{
-                  width: 20,
-                  height: 20,
-                  color: "var(--pastel-red)",
-                  flexShrink: 0,
-                }}
-              />
-            )}
-
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: item.ok
-                    ? "var(--forte-text-primary)"
-                    : "var(--pastel-red-text)",
-                  lineHeight: 1.45,
-                  display: "block",
-                }}
-              >
-                {item.label}
-              </span>
-            </div>
-
-            {/* Timecode jump if failed */}
-            {!item.ok && item.timecode_sec !== undefined && (
-              <button
-                type="button"
-                className="badge-red"
-                style={{ cursor: "pointer", flexShrink: 0 }}
-                onClick={() => onSeek(item.timecode_sec!)}
-                title={t.seek}
-              >
-                <ClockIcon style={{ width: 12, height: 12 }} />
-                {formatTime(item.timecode_sec)}
-              </button>
-            )}
+      <p style={{ fontSize: 12, lineHeight: 1.6, color: "var(--forte-text-muted)" }}>{t.note}</p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
+        {[{ label: t.events, value: violations.length }, { label: t.filled, value: `${filled} / ${total}` }, { label: t.missing, value: total - filled }].map((metric) => (
+          <div key={metric.label} className="card-corporate" style={{ padding: "12px 10px", textAlign: "center", background: "var(--forte-surface)" }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "var(--forte-text-primary)" }}>{metric.value}</div>
+            <div style={{ fontSize: 11, color: "var(--forte-text-muted)", marginTop: 3 }}>{metric.label}</div>
           </div>
         ))}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {checks.map((check) => {
+          const complete = check.present === violations.length;
+          const timestamp = check.firstIncomplete?.timecode_sec;
+          return (
+            <div key={check.id} className="card-corporate" style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, background: complete ? "var(--forte-surface)" : "var(--pastel-amber-bg)", borderColor: complete ? "var(--forte-border)" : "var(--pastel-amber-border)" }}>
+              {complete ? <CheckCircleIcon style={{ width: 20, height: 20, flexShrink: 0, color: "var(--pastel-lime)" }} /> : <InformationCircleIcon style={{ width: 20, height: 20, flexShrink: 0, color: "var(--pastel-amber)" }} />}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 13, fontWeight: 500, lineHeight: 1.45, color: "var(--forte-text-primary)" }}>{check.label}</span>
+                <span style={{ display: "block", fontSize: 11, lineHeight: 1.5, marginTop: 3, color: "var(--forte-text-muted)" }}>{t.present}: {check.present} / {violations.length}{!complete && ` · ${t.needsData}`}</span>
+              </div>
+              {!complete && timestamp !== undefined && Number.isFinite(timestamp) && timestamp >= 0 && (
+                onSeek ? <button type="button" className="badge-amber" title={t.seek} onClick={() => onSeek(timestamp)} style={{ cursor: "pointer", flexShrink: 0 }}><ClockIcon style={{ width: 12, height: 12 }} />{formatTime(timestamp)}</button>
+                  : <span className="badge-amber" style={{ flexShrink: 0 }}><ClockIcon style={{ width: 12, height: 12 }} />{formatTime(timestamp)}</span>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -5,10 +5,9 @@ import type { Violation } from "@/types";
 import {
   PlayIcon,
   PauseIcon,
-  SpeakerWaveIcon,
   SpeakerXMarkIcon,
   ArrowsPointingOutIcon,
-  ClockIcon,
+  FilmIcon,
 } from "@heroicons/react/24/solid";
 
 interface VideoPlayerProps {
@@ -40,26 +39,19 @@ export default function VideoPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [speed, setSpeed] = useState(1);
-  const [muted, setMuted] = useState(false);
   const [hoverMarker, setHoverMarker] = useState<Violation | null>(null);
+  const labels = {
+    ru: { play: "Воспроизвести", pause: "Приостановить", silent: "Без звука", fullscreen: "На весь экран", unavailable: "Видео не выбрано", unavailableDescription: "Выберите видеофайл, чтобы открыть предпросмотр." },
+    kz: { play: "Ойнату", pause: "Кідірту", silent: "Дыбыссыз", fullscreen: "Толық экран", unavailable: "Бейне таңдалмаған", unavailableDescription: "Алдын ала көру үшін бейнефайлды таңдаңыз." },
+    en: { play: "Play", pause: "Pause", silent: "Muted", fullscreen: "Fullscreen", unavailable: "No video selected", unavailableDescription: "Select a video file to open the preview." },
+  }[lang];
 
   useEffect(() => {
     if (seekTo !== null && seekTo !== undefined && videoRef.current) {
       videoRef.current.currentTime = seekTo;
       videoRef.current.play().catch(() => {});
-      setPlaying(true);
     }
   }, [seekTo]);
-
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v || !src) return;
-    v.src = src;
-    v.load();
-    setCurrentTime(0);
-    setDuration(0);
-    setPlaying(false);
-  }, [src]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -71,19 +63,10 @@ export default function VideoPlayer({
     const v = videoRef.current;
     if (!v) return;
     if (v.paused) {
-      v.play();
-      setPlaying(true);
+      v.play().catch(() => {});
     } else {
       v.pause();
-      setPlaying(false);
     }
-  };
-
-  const toggleMute = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    v.muted = !v.muted;
-    setMuted(v.muted);
   };
 
   const handleTimeUpdate = () => {
@@ -97,6 +80,7 @@ export default function VideoPlayer({
     const v = videoRef.current;
     if (!v) return;
     setDuration(v.duration);
+    v.playbackRate = speed;
   };
 
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -121,6 +105,19 @@ export default function VideoPlayer({
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+  if (!src) {
+    return (
+      <div
+        className="card-corporate"
+        style={{ aspectRatio: "16 / 9", minHeight: 220, padding: 24, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 12, textAlign: "center", background: "var(--forte-surface-2)" }}
+      >
+        <FilmIcon aria-hidden="true" style={{ width: 36, height: 36, color: "var(--forte-text-muted)" }} />
+        <p style={{ fontSize: 14, fontWeight: 600, color: "var(--forte-text-primary)" }}>{labels.unavailable}</p>
+        <p style={{ maxWidth: 380, fontSize: 12, lineHeight: 1.6, color: "var(--forte-text-muted)" }}>{labels.unavailableDescription}</p>
+      </div>
+    );
+  }
+
   return (
     <div
       className="card-corporate"
@@ -143,8 +140,17 @@ export default function VideoPlayer({
       >
         <video
           ref={videoRef}
+          src={src || undefined}
+          muted
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onEmptied={() => {
+            setCurrentTime(0);
+            setDuration(0);
+            setPlaying(false);
+          }}
           onEnded={() => setPlaying(false)}
           playsInline
           style={{
@@ -253,7 +259,7 @@ export default function VideoPlayer({
             }}
           />
 
-          {/* Violation markers on timeline (Pastel Muted Red) */}
+        {/* Timestamps of events marked for human review */}
           {duration > 0 &&
             violations.map((v, i) => {
               const leftPct = (v.timecode_sec / duration) * 100;
@@ -296,14 +302,17 @@ export default function VideoPlayer({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
           }}
         >
-          {/* Left: Play/Pause, Mute, Time display */}
+          {/* Left: Play/Pause, visual-only preview, Time display */}
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <button
               type="button"
               className="btn-secondary"
               onClick={togglePlay}
+              aria-label={playing ? labels.pause : labels.play}
               style={{ padding: "6px 10px" }}
             >
               {playing ? (
@@ -313,24 +322,16 @@ export default function VideoPlayer({
               )}
             </button>
 
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={toggleMute}
-              style={{ padding: "6px 10px" }}
-            >
-              {muted ? (
-                <SpeakerXMarkIcon style={{ width: 16, height: 16 }} />
-              ) : (
-                <SpeakerWaveIcon style={{ width: 16, height: 16 }} />
-              )}
-            </button>
+            <span title={labels.silent} aria-label={labels.silent} role="img" style={{ display: "inline-flex", color: "var(--forte-text-muted)" }}>
+              <SpeakerXMarkIcon aria-hidden="true" style={{ width: 16, height: 16 }} />
+            </span>
 
             <div
               style={{
                 fontSize: 12,
                 fontFamily: "monospace",
                 color: "var(--forte-text-secondary)",
+                whiteSpace: "nowrap",
               }}
             >
               {formatTime(currentTime)} / {formatTime(duration)}
@@ -373,7 +374,7 @@ export default function VideoPlayer({
               className="btn-secondary"
               onClick={toggleFullscreen}
               style={{ padding: "6px 8px" }}
-              title="На весь экран"
+              title={labels.fullscreen}
             >
               <ArrowsPointingOutIcon style={{ width: 15, height: 15 }} />
             </button>

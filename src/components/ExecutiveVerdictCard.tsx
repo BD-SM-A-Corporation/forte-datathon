@@ -4,9 +4,6 @@ import type { AnalysisResult } from "@/types";
 import {
   CheckBadgeIcon,
   ExclamationCircleIcon,
-  ClockIcon,
-  ShieldExclamationIcon,
-  DocumentArrowDownIcon,
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 
@@ -26,49 +23,39 @@ export default function ExecutiveVerdictCard({
   const isViolation = result.verdict === "violation";
   const violationsCount = result.violations.length;
 
-  // Calculate a realistic compliance score
-  // If 0 violations -> 100%, each violation deducts ~15%
-  const complianceScore = Math.max(10, 100 - violationsCount * 18);
-
   const t = {
     ru: {
-      statusPassed: "Соответствует нормативам",
-      statusFailed: "Обнаружены нарушения",
-      descPassed: "Рекламный видеоролик прошёл проверку. Все требования НБРК и АРРФР соблюдены.",
-      descFailed: "Обнаружены отклонения от нормативных требований НБРК к финансовой рекламе.",
-      complianceScore: "Индекс соответствия",
-      totalViolations: "Всего замечаний",
-      criticalCount: "Критических",
-      mediumCount: "Предупреждений",
-      duration: "Время аудита",
+      statusPassed: "Нарушение не обнаружено",
+      statusFailed: "Обнаружены признаки возможных нарушений",
+      descPassed: "События для дополнительного просмотра не отмечены. Это не подтверждение соблюдения всех правил кассовой дисциплины.",
+      descFailed: "Отмечены визуальные события, которые нужно проверить в контексте записи. Наличие события само по себе не доказывает нарушение.",
+      reviewNote: "Результат — подсказка уполномоченному сотруднику. Он не является юридическим или дисциплинарным заключением.",
+      totalViolations: "Событий для просмотра",
+      duration: "Время обработки",
       jobId: "ID проверки",
-      newAudit: "Новый аудит",
+      newAudit: "Новый анализ",
     },
     kz: {
-      statusPassed: "Талаптарға толық сай келеді",
-      statusFailed: "Бұзушылықтар анықталды",
-      descPassed: "Жарнамалық бейне тексеруден сәтті өтті. ҰБ мен ҚҚРА барлық талаптары орындалған.",
-      descFailed: "Қаржылық жарнамаға қойылатын ҰБ талаптарынан ауытқулар тіркелді.",
-      complianceScore: "Сәйкестік индексі",
-      totalViolations: "Барлық ескертулер",
-      criticalCount: "Қауіпті",
-      mediumCount: "Ескертулер",
-      duration: "Аудит уақыты",
+      statusPassed: "Бұзушылық анықталған жоқ",
+      statusFailed: "Ықтимал бұзушылықтардың белгілері анықталды",
+      descPassed: "Қосымша қарауға арналған оқиғалар белгіленбеген. Бұл кассалық тәртіптің барлық ережелері сақталғанын растамайды.",
+      descFailed: "Жазба контексінде тексеруді қажет ететін визуалды оқиғалар белгіленді. Оқиғаның өзі бұзушылықты дәлелдемейді.",
+      reviewNote: "Нәтиже уәкілетті қызметкерге көмек ретінде беріледі. Бұл заңдық немесе тәртіптік қорытынды емес.",
+      totalViolations: "Қаралатын оқиғалар",
+      duration: "Өңдеу уақыты",
       jobId: "Тексеру ID",
-      newAudit: "Жаңа аудит",
+      newAudit: "Жаңа талдау",
     },
     en: {
-      statusPassed: "Fully Compliant",
-      statusFailed: "Violations Detected",
-      descPassed: "The promotional video passed automated inspection. NBRK and ARDFM standards satisfied.",
-      descFailed: "Identified non-compliant discrepancies regarding NBRK financial advertising rules.",
-      complianceScore: "Compliance Score",
-      totalViolations: "Total Findings",
-      criticalCount: "Critical",
-      mediumCount: "Warnings",
-      duration: "Audit Duration",
+      statusPassed: "No violation detected",
+      statusFailed: "Signs of possible violations detected",
+      descPassed: "No events are marked for further review. This does not confirm compliance with every cash-handling rule.",
+      descFailed: "Visual events are marked for review in the context of the recording. An event alone does not prove a violation.",
+      reviewNote: "This result assists an authorized reviewer. It is not a legal or disciplinary conclusion.",
+      totalViolations: "Events for review",
+      duration: "Processing time",
       jobId: "Job Reference",
-      newAudit: "New Audit",
+      newAudit: "New analysis",
     },
   }[lang];
 
@@ -93,9 +80,10 @@ export default function ExecutiveVerdictCard({
           justifyContent: "space-between",
           alignItems: "flex-start",
           gap: 12,
+          flexWrap: "wrap",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "1 1 220px", minWidth: 0 }}>
           {isViolation ? (
             <div
               style={{
@@ -164,7 +152,7 @@ export default function ExecutiveVerdictCard({
         </button>
       </div>
 
-      {/* Compliance Score Bar */}
+      {/* Human review scope */}
       <div
         style={{
           padding: "12px 14px",
@@ -173,48 +161,7 @@ export default function ExecutiveVerdictCard({
           border: "1px solid var(--forte-border)",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 6,
-          }}
-        >
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--forte-text-secondary)" }}>
-            {t.complianceScore}
-          </span>
-          <span
-            style={{
-              fontSize: 18,
-              fontWeight: 800,
-              color: isViolation ? "var(--forte-brand)" : "var(--pastel-lime)",
-            }}
-          >
-            {complianceScore}%
-          </span>
-        </div>
-
-        {/* Progress Bar */}
-        <div
-          style={{
-            height: 6,
-            borderRadius: 3,
-            backgroundColor: "var(--forte-surface)",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              height: "100%",
-              width: `${complianceScore}%`,
-              backgroundColor: isViolation
-                ? "var(--forte-brand)"
-                : "var(--pastel-lime)",
-              transition: "width 0.4s ease",
-            }}
-          />
-        </div>
+        <p style={{ fontSize: 12, lineHeight: 1.6, color: "var(--forte-text-secondary)" }}>{t.reviewNote}</p>
       </div>
 
       {/* Metrics Grid */}

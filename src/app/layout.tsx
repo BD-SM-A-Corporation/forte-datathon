@@ -9,9 +9,9 @@ const openSans = Open_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Forte Compliance — Автоматизированный аудит рекламы и медиа",
+  title: "Forte Compliance — Проверка кассовых операций по видео",
   description:
-    "Корпоративная система ForteBank для автоматического аудита рекламных и медиа-материалов на соответствие требованиям НБРК и АРРФР.",
+    "Forte Compliance — рабочее пространство для просмотра видеозаписей кассовых операций и проверки событий специалистом.",
   icons: {
     icon: [
       { url: "/Logo/short_Logo.svg", type: "image/svg+xml" },
@@ -28,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" data-theme="light" className={`${openSans.variable} h-full`}>
+    <html lang="ru" className={`${openSans.variable} h-full`}>
       <head>
         <link rel="icon" href="/Logo/short_Logo.svg" type="image/svg+xml" />
         <link rel="alternate icon" href="/favicon.ico" />

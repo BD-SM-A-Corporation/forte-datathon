@@ -11,7 +11,7 @@
    ========================================================================== */
 
 :root {
-  /* Default: Light Theme */
+  color-scheme: light;
   --forte-brand: #0e85e6;
   --forte-brand-hover: #0b72c4;
   --forte-brand-secondary: #3fa4c8;
@@ -62,57 +62,6 @@
   --forte-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --forte-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
   --forte-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
-}
-
-[data-theme="dark"] {
-  /* Dark Corporate: Significantly lighter and higher contrast for supreme legibility */
-  --forte-bg: #14171F;
-  --forte-surface: #1E2330;
-  --forte-surface-2: #282F40;
-  --forte-surface-subtle: #191E2A;
-  --forte-border: #384257;
-  --forte-border-subtle: #2D3647;
-  --forte-border-hover: #4F5D7A;
-  --forte-badge-bg: #2C3548;
-
-  /* High-contrast readable text hierarchy */
-  --forte-text-primary: #FFFFFF;
-  --forte-text-secondary: #E2E8F0;
-  --forte-text-muted: #94A3B8;
-  --forte-text-faint: #64748B;
-
-  /* Brighter brand colors for dark mode legibility */
-  --forte-brand: #38BDF8;
-  --forte-brand-hover: #48b8dd;
-  --forte-brand-secondary: #3fa4c8;
-  --forte-brand-cyan: #7DD3FC;
-  --forte-brand-gradient: linear-gradient(135deg, #0e85e6 0%, #38bdf8 50%, #48b8dd 100%);
-  --forte-brand-bg-subtle: rgba(56, 189, 248, 0.16);
-  --forte-brand-border-subtle: rgba(56, 189, 248, 0.38);
-
-  --forte-magenta: var(--forte-brand);
-  --forte-magenta-hover: var(--forte-brand-hover);
-
-  /* Brighter pastel colors for dark mode legibility */
-  --pastel-lime: #A3E635;
-  --pastel-lime-bg: rgba(163, 230, 53, 0.18);
-  --pastel-lime-border: rgba(163, 230, 53, 0.42);
-  --pastel-lime-text: #D9F99D;
-
-  --pastel-red: #F87171;
-  --pastel-red-bg: rgba(248, 113, 113, 0.18);
-  --pastel-red-border: rgba(248, 113, 113, 0.42);
-  --pastel-red-text: #FECACA;
-
-  --pastel-amber: #FBBF24;
-  --pastel-amber-bg: rgba(251, 191, 36, 0.18);
-  --pastel-amber-border: rgba(251, 191, 36, 0.42);
-  --pastel-amber-text: #FEF08A;
-
-  /* Dark mode crisp depth shadow */
-  --forte-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --forte-shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
-  --forte-shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.6);
 }
 
 @theme inline {

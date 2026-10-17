@@ -3,7 +3,6 @@
 import { useState } from "react";
 import type { Violation } from "@/types";
 import {
-  ExclamationTriangleIcon,
   ClockIcon,
   ChevronDownIcon,
   ArrowTopRightOnSquareIcon,
@@ -15,7 +14,7 @@ import {
 interface ViolationCardProps {
   violation: Violation;
   index: number;
-  onSeek: (timecode: number) => void;
+  onSeek?: (timecode: number) => void;
   lang?: "ru" | "kz" | "en";
 }
 
@@ -38,29 +37,49 @@ export default function ViolationCard({
   const labels = {
     ru: {
       seek: "Перейти к таймкоду",
-      evidence: "Кадры фиксации (OCR)",
-      recommendation: "Рекомендация юридического комплаенса",
-      regulation: "Нормативно-правовое основание",
-      openAdilet: "Открыть статью в «Әділет»",
-      riskLevel: "Критический риск",
+      evidence: "Кадры события",
+      observation: "Видимое наблюдение",
+      rationale: "Почему событие вынесено на просмотр",
+      missingRationale: "Обоснование не предоставлено. Событие требует просмотра специалистом.",
+      recommendation: "Проверка специалистом",
+      recommendationText: "Просмотрите последовательность до и после события. Сопоставьте видимое действие с применимым документом, если он предоставлен. Не делайте выводов о намерениях, личности участников или записях в банковской системе по одним кадрам.",
+      regulation: "Нормативный источник",
+      missingSource: "Источник не предоставлен. Нельзя подтвердить нарушение конкретного требования без применимого документа.",
+      openSource: "Открыть предоставленный источник",
+      reviewStatus: "Требует проверки",
+      close: "Закрыть",
     },
     kz: {
       seek: "Таймкодқа өту",
-      evidence: "Тіркелген кадрлар (OCR)",
-      recommendation: "Заңдық комплаенс ұсынысы",
-      regulation: "Нормативтік-құқықтық негіз",
-      openAdilet: "«Әділет» базасынан ашу",
-      riskLevel: "Қауіпті деңгей",
+      evidence: "Оқиға кадрлары",
+      observation: "Көрінетін бақылау",
+      rationale: "Оқиғаны қарауға белгілеу себебі",
+      missingRationale: "Негіздеме берілмеген. Оқиғаны маман қарап шығуы қажет.",
+      recommendation: "Маманның тексеруі",
+      recommendationText: "Оқиғаға дейінгі және кейінгі реттілікті қараңыз. Қолданылатын құжат берілсе, көрінетін әрекетті сонымен салыстырыңыз. Тек кадрларға сүйеніп ниет, қатысушылардың жеке басы немесе банк жүйесіндегі жазбалар туралы қорытынды жасамаңыз.",
+      regulation: "Нормативтік дереккөз",
+      missingSource: "Дереккөз берілмеген. Қолданылатын құжатсыз нақты талаптың бұзылғанын растау мүмкін емес.",
+      openSource: "Берілген дереккөзді ашу",
+      reviewStatus: "Тексеру қажет",
+      close: "Жабу",
     },
     en: {
       seek: "Seek to timecode",
-      evidence: "Frame Evidence (OCR)",
-      recommendation: "Legal Remediation Recommendation",
-      regulation: "Regulatory Mandate Reference",
-      openAdilet: "View in Adilet Legal Archive",
-      riskLevel: "Critical Risk",
+      evidence: "Event frames",
+      observation: "Visible observation",
+      rationale: "Reason for review",
+      missingRationale: "No rationale was provided. A specialist needs to review the event.",
+      recommendation: "Specialist review",
+      recommendationText: "Review the sequence before and after the event. Compare the visible action with the applicable document, if supplied. Do not infer intent, participant identity, or banking system entries from frames alone.",
+      regulation: "Regulatory source",
+      missingSource: "No source was provided. A breach of a specific requirement cannot be confirmed without the applicable document.",
+      openSource: "Open supplied source",
+      reviewStatus: "Needs review",
+      close: "Close",
     },
   }[lang];
+  const hasSource = Boolean(violation.regulation?.trim() || violation.regulation_article?.trim() || violation.regulation_url?.trim());
+  const sourceUrl = /^https?:\/\//i.test(violation.regulation_url ?? "") ? violation.regulation_url : undefined;
 
   return (
     <>
@@ -107,6 +126,7 @@ export default function ViolationCard({
           {/* Title */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <p
+              title={violation.type}
               style={{
                 fontSize: 14,
                 fontWeight: 600,
@@ -121,7 +141,7 @@ export default function ViolationCard({
           </div>
 
           {/* Timecode Button */}
-          <button
+          {onSeek ? <button
             type="button"
             className="badge-red"
             style={{
@@ -136,7 +156,12 @@ export default function ViolationCard({
           >
             <ClockIcon style={{ width: 13, height: 13 }} />
             {formatTime(violation.timecode_sec)}
-          </button>
+          </button> : (
+            <span className="badge-red" style={{ flexShrink: 0 }}>
+              <ClockIcon style={{ width: 13, height: 13 }} />
+              {formatTime(violation.timecode_sec)}
+            </span>
+          )}
 
           {/* Chevron */}
           <ChevronDownIcon
@@ -162,8 +187,11 @@ export default function ViolationCard({
               background: "var(--forte-surface-subtle)",
             }}
           >
-            {/* Description */}
-            <p
+            <span className="badge-amber" style={{ alignSelf: "flex-start" }}>{labels.reviewStatus}</span>
+            {/* Visible observation */}
+            <div>
+              <h3 style={{ fontSize: 12, fontWeight: 700, color: "var(--forte-text-primary)", marginBottom: 5 }}>{labels.observation}</h3>
+              <p
               style={{
                 fontSize: 13,
                 color: "var(--forte-text-secondary)",
@@ -171,7 +199,12 @@ export default function ViolationCard({
               }}
             >
               {violation.description}
-            </p>
+              </p>
+            </div>
+            <div>
+              <h3 style={{ fontSize: 12, fontWeight: 700, color: "var(--forte-text-primary)", marginBottom: 5 }}>{labels.rationale}</h3>
+              <p style={{ fontSize: 13, lineHeight: 1.6, color: "var(--forte-text-secondary)" }}>{violation.rationale?.trim() || labels.missingRationale}</p>
+            </div>
 
             {/* Evidence Frames */}
             {violation.evidence_frames.length > 0 && (
@@ -193,7 +226,7 @@ export default function ViolationCard({
                   {labels.evidence}
                 </div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {violation.evidence_frames.map((frame, fi) => (
+                  {violation.evidence_frames.slice(0, 3).map((frame, fi) => (
                     <div
                       key={fi}
                       style={{
@@ -209,7 +242,7 @@ export default function ViolationCard({
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={frame.image_base64}
-                        alt={`Evidence at ${frame.timestamp_sec}s`}
+                        alt={`${labels.evidence}: ${formatTime(frame.timestamp_sec)}`}
                         style={{
                           width: 120,
                           height: 68,
@@ -271,15 +304,12 @@ export default function ViolationCard({
                   {labels.recommendation}
                 </span>
                 <span style={{ color: "var(--forte-text-secondary)" }}>
-                  Увеличить размер шрифта ГЭСВ минимум до 50% от размера
-                  привлекающей ставки вознаграждения и дополнить голосовое
-                  сопровождение текстом обязательного дисклеймера.
+                  {labels.recommendationText}
                 </span>
               </div>
             </div>
 
-            {/* Legal Reference */}
-            {violation.regulation && (
+            {/* Supplied source, or an explicit absence of source */}
               <div
                 style={{
                   paddingTop: 10,
@@ -291,7 +321,7 @@ export default function ViolationCard({
                   gap: 8,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
                   <ShieldCheckIcon
                     style={{
                       width: 15,
@@ -306,12 +336,13 @@ export default function ViolationCard({
                       color: "var(--forte-text-muted)",
                     }}
                   >
-                    {violation.regulation_article || violation.regulation}
+                    <strong style={{ display: "block", marginBottom: 4 }}>{labels.regulation}</strong>
+                    {hasSource ? [violation.regulation, violation.regulation_article].filter(Boolean).join(" · ") || violation.regulation_url : labels.missingSource}
                   </span>
                 </div>
-                {violation.regulation_url && (
+                {sourceUrl && (
                   <a
-                    href={violation.regulation_url}
+                    href={sourceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
@@ -324,12 +355,11 @@ export default function ViolationCard({
                       textDecoration: "none",
                     }}
                   >
-                    {labels.openAdilet}
+                    {labels.openSource}
                     <ArrowTopRightOnSquareIcon style={{ width: 13, height: 13 }} />
                   </a>
                 )}
               </div>
-            )}
           </div>
         )}
       </div>
@@ -382,13 +412,13 @@ export default function ViolationCard({
                 style={{ padding: "4px 10px", fontSize: 12 }}
                 onClick={() => setSelectedFrame(null)}
               >
-                Закрыть
+                {labels.close}
               </button>
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={selectedFrame}
-              alt="Evidence full"
+              alt={labels.evidence}
               style={{
                 width: "100%",
                 borderRadius: 8,
