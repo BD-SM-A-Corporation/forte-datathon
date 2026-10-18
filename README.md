@@ -1,17 +1,54 @@
 # Forte — интерфейс локального видеоанализа
 
-Требуется Node.js 20.9+ и установленный npm/bun. Из каталога `front`:
+Полный запуск обоих репозиториев с нуля, загрузка модели, NVIDIA/CDI,
+проверка API, перезапуск и перенос на другую машину описаны в
+[инструкции backend](../backend/README.md#запуск-проекта-с-нуля-и-передача-другому-разработчику).
+Репозитории должны лежать рядом как `backend/` и `front/`.
+
+Требуется Node.js 20.9+ и Bun 1.4.2 (`packageManager` в `package.json`). Из каталога `front`:
 
 ```bash
-cp .env.example .env.local
+test -f .env.local || cp .env.example .env.local
 # Заполните BACKEND_API_KEY тем же значением, что API_KEY в backend/.env
 # BACKEND_API_URL — адрес FastAPI, доступный серверу Next.js
-bun install
+bun install --frozen-lockfile
 bun dev
 ```
 
 Интерфейс: http://localhost:3000. Сервер и worker запускаются по инструкции в `../backend/README.md`.
-Для production: `bun run build`, затем `bun start`.
+По умолчанию фронт обращается к `https://forte-api.artcevvv.com/api/v1`.
+Для локального backend задайте `BACKEND_API_URL=http://127.0.0.1:8000` в `.env.local`.
+Для production без Docker:
+
+```bash
+bun run build
+cp -r public .next/standalone/
+cp -r .next/static .next/standalone/.next/
+node .next/standalone/server.js
+```
+
+При переходе с разработки сначала остановите `bun dev`; не собирайте приложение
+в `.next` работающего dev-сервера. После изменения `.env.local` перезапустите Next.js.
+Backend Compose не собирает frontend из этого репозитория.
+
+Для запуска фронта в Docker требуется Docker Compose v2:
+
+```bash
+test -f .env.local || cp .env.example .env.local
+# Заполните BACKEND_API_KEY ключом API на forte-api.artcevvv.com
+docker compose up -d --build
+docker compose logs -f front
+```
+
+Интерфейс доступен на http://localhost:3000. Изменить порт можно командой
+`FRONT_PORT=3001 docker compose up -d`. Контейнер автоматически перезапускается
+после перезагрузки хоста, если Docker запущен. Остановка: `docker compose down`.
+Docker использует многоэтапную standalone-сборку и запускает сервер от пользователя
+`node`. `.env.local` не попадает в образ; Compose передаёт ключ при запуске.
+Compose использует `https://forte-api.artcevvv.com` по умолчанию; другой адрес
+можно передать через `BACKEND_API_URL=https://example.com docker compose up -d`.
+Адрес указывается без `/api/v1` — прокси добавляет этот путь самостоятельно.
+После изменения ключа выполните `docker compose up -d --force-recreate`.
 
 Браузер отправляет MOV в `/api/backend/analyze`. Next.js передаёт файл потоком
 на FastAPI и добавляет серверный `X-API-Key`. Ключ не попадает в клиентский bundle.

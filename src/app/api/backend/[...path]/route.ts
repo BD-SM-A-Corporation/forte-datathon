@@ -8,7 +8,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
   if (!allowed) return Response.json({ detail: 'Маршрут не найден' }, { status: 404 });
   const key = process.env.BACKEND_API_KEY;
   if (!key) return Response.json({ detail: 'На сервере интерфейса не настроен BACKEND_API_KEY' }, { status: 503 });
-  const base = (process.env.BACKEND_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+  const base = (process.env.BACKEND_API_URL || 'https://forte-api.artcevvv.com').replace(/\/$/, '');
   const headers = new Headers({ 'X-API-Key': key });
   if (request.headers.has('content-type')) headers.set('content-type', request.headers.get('content-type')!);
   try {

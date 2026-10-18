@@ -1,0 +1,11 @@
+services:
+  front:
+    build: .
+    ports:
+      - "${FRONT_PORT:-3000}:3000"
+    env_file:
+      - .env.local
+    environment:
+      BACKEND_API_URL: ${BACKEND_API_URL:-https://forte-api.artcevvv.com}
+    restart: unless-stopped
+    init: true
