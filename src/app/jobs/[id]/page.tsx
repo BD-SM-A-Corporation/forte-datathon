@@ -35,7 +35,6 @@ function JobDetailsInner() {
   useEffect(() => {
     let isSubscribed = true;
     let terminal = false;
-    const started = Date.now();
 
     async function fetchJob() {
       if (!jobId) return;
@@ -58,8 +57,7 @@ function JobDetailsInner() {
     const poll = async () => {
       await fetchJob();
       if (isSubscribed && !terminal) {
-        if (Date.now() - started >= 300000) setError('Превышен лимит ожидания 5 минут');
-        else timer = setTimeout(poll, 2000);
+        timer = setTimeout(poll, 2000);
       }
     };
     void poll();

@@ -16,13 +16,13 @@ export function StageProgress({ status, error, onRetry, lang = 'ru' }: { progres
     return () => clearInterval(timer);
   }, [status]);
   const t = {
-    ru: { limit: 'Лимит: 5 минут', failed: 'Анализ не завершён. Результат недоступен.', retry: 'Вернуться к загрузке', complete: 'Анализ завершён', waiting: 'Ожидаем результат анализа', progress: 'Обработка записи' },
-    kz: { limit: 'Шектеу: 5 минут', failed: 'Талдау аяқталмады. Нәтиже қолжетімсіз.', retry: 'Жүктеуге оралу', complete: 'Талдау аяқталды', waiting: 'Талдау нәтижесін күтеміз', progress: 'Бейнені өңдеу' },
-    en: { limit: 'Limit: 5 minutes', failed: 'Analysis did not complete. Result unavailable.', retry: 'Back to upload', complete: 'Analysis complete', waiting: 'Waiting for analysis results', progress: 'Processing recording' },
+    ru: { durationNote: 'Без лимита ожидания', failed: 'Анализ не завершён. Результат недоступен.', retry: 'Вернуться к загрузке', complete: 'Анализ завершён', waiting: 'Ожидаем результат анализа', progress: 'Обработка записи' },
+    kz: { durationNote: 'Күту уақыты шектелмеген', failed: 'Талдау аяқталмады. Нәтиже қолжетімсіз.', retry: 'Жүктеуге оралу', complete: 'Талдау аяқталды', waiting: 'Талдау нәтижесін күтеміз', progress: 'Бейнені өңдеу' },
+    en: { durationNote: 'No waiting time limit', failed: 'Analysis did not complete. Result unavailable.', retry: 'Back to upload', complete: 'Analysis complete', waiting: 'Waiting for analysis results', progress: 'Processing recording' },
   }[lang];
   const running = status === 'processing';
   return <div className={styles.panel}>
-    <div className={styles.timing}><span><Clock size={12} /><span role="timer" aria-live="off">{Math.floor(elapsed / 60).toString().padStart(2, '0')}:{(elapsed % 60).toString().padStart(2, '0')}</span></span><span>{t.limit}</span></div>
+    <div className={styles.timing}><span><Clock size={12} /><span role="timer" aria-live="off">{Math.floor(elapsed / 60).toString().padStart(2, '0')}:{(elapsed % 60).toString().padStart(2, '0')}</span></span><span>{t.durationNote}</span></div>
     <AnimatePresence mode="wait" initial={false}>
       {status === 'failed' ? <motion.div key="failed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={styles.error} role="alert"><p><AlertCircle size={18} />{error || t.failed}</p>{onRetry && <button onClick={onRetry} className="btn-secondary"><ArrowLeft size={14} />{t.retry}</button>}</motion.div> : <motion.div key="status" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <div className={styles.track} role="progressbar" aria-label={t.progress} aria-valuenow={status === 'completed' ? 100 : undefined}>

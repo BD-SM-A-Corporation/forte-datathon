@@ -72,13 +72,11 @@ export default function CashDisciplineApp() {
     setCurrentStep('processing');
     setJobStatus('processing');
 
-    const started = Date.now();
     try {
       const init = await uploadVideo(file);
       if (run !== runRef.current) return;
       setProgress(15);
       while (run === runRef.current) {
-        if (Date.now() - started >= 300000) throw new Error('Превышен лимит ожидания 5 минут. Результат недоступен.');
         const job = await getJobStatus(init.job_id);
         if (run !== runRef.current) return;
         if (job.status === 'failed') throw new Error(job.error || 'Ошибка обработки видео');
@@ -137,9 +135,9 @@ export default function CashDisciplineApp() {
   };
 
   const labels = {
-    ru: { start: "Начать анализ", ready: "Видео готово к анализу", readyDescription: "Запустите проверку: здесь появятся события, наблюдения модели и кадры-доказательства.", processing: "Анализируем запись", complete: "Анализ завершён", events: "События для проверки", empty: "Совпадений с правилами не найдено", timeout: "Обычно анализ занимает до 5 минут. Точный процент готовности сервер не передаёт." },
-    kz: { start: "Талдауды бастау", ready: "Бейне талдауға дайын", readyDescription: "Тексеруді бастаңыз: оқиғалар, модель бақылаулары және дәлел кадрлары осында көрсетіледі.", processing: "Бейне талдануда", complete: "Талдау аяқталды", events: "Тексерілетін оқиғалар", empty: "Ережелермен сәйкестік табылмады", timeout: "Талдау әдетте 5 минутқа дейін созылады. Сервер дайындықтың нақты пайызын бермейді." },
-    en: { start: "Start analysis", ready: "Video ready for analysis", readyDescription: "Start the review to see events, model observations and evidence frames here.", processing: "Analyzing recording", complete: "Analysis complete", events: "Events for review", empty: "No rule matches found", timeout: "Analysis usually takes up to 5 minutes. The server does not report exact progress." },
+    ru: { start: "Начать анализ", ready: "Видео готово к анализу", readyDescription: "Запустите проверку: здесь появятся события, наблюдения модели и кадры-доказательства.", processing: "Анализируем запись", complete: "Анализ завершён", events: "События для проверки", empty: "Совпадений с правилами не найдено", waitingNote: "Дождитесь результата. Время ожидания не ограничено; точный процент готовности сервер не передаёт." },
+    kz: { start: "Талдауды бастау", ready: "Бейне талдауға дайын", readyDescription: "Тексеруді бастаңыз: оқиғалар, модель бақылаулары және дәлел кадрлары осында көрсетіледі.", processing: "Бейне талдануда", complete: "Талдау аяқталды", events: "Тексерілетін оқиғалар", empty: "Ережелермен сәйкестік табылмады", waitingNote: "Нәтижені күтіңіз. Күту уақыты шектелмеген; сервер дайындықтың нақты пайызын бермейді." },
+    en: { start: "Start analysis", ready: "Video ready for analysis", readyDescription: "Start the review to see events, model observations and evidence frames here.", processing: "Analyzing recording", complete: "Analysis complete", events: "Events for review", empty: "No rule matches found", waitingNote: "Please wait for the result. There is no waiting time limit; the server does not report exact progress." },
   }[lang];
 
   const workflowStep = currentStep === "result" ? 2 : currentStep === "processing" ? 1 : 0;
@@ -220,7 +218,7 @@ export default function CashDisciplineApp() {
                 {jobStatus !== "failed" && <AnalysisVisual active lang={lang} />}
                 <h3>{jobStatus === "failed" ? copy.failedTitle : labels.processing}</h3>
                 <StageProgress progress={progress} status={jobStatus} error={errorMessage} onRetry={handleReset} lang={lang} />
-                <p className={styles.processingNote}>{labels.timeout}</p>
+                <p className={styles.processingNote}>{labels.waitingNote}</p>
               </motion.div>}
               {currentStep === "result" && jobResult && <motion.div key="result" className={styles.resultStack} {...enter}>
                 <VerdictBanner assessment={jobResult.assessment} verificationSummary={jobResult.verification_summary} violationsCount={jobResult.violations_count} filename={jobResult.filename} onDownloadJson={handleDownloadJson} onReset={handleReset} />
